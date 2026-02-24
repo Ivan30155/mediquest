@@ -37,6 +37,15 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Premium Healthcare Colors */
+  --pulse-bg-primary: #0D0D0D;
+  --pulse-bg-secondary: #1A1A1A;
+  --pulse-red-primary: #E10600;
+  --pulse-red-light: #FF3B3B;
+  --pulse-red-glow: rgba(225, 6, 0, 0.4);
+  --pulse-text-primary: #F5F5F5;
+  --pulse-text-secondary: #AAAAAA;
 }
 
 .dark {
@@ -72,6 +81,67 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0.269 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+}
+
+/* Premium Healthcare Animations */
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  25% { transform: scale(1.05); opacity: 0.8; }
+  50% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(225, 6, 0, 0.7); }
+  50% { box-shadow: 0 0 0 10px rgba(225, 6, 0, 0); }
+}
+
+@keyframes float-up {
+  0% { transform: translateY(0); opacity: 0; }
+  100% { transform: translateY(-10px); opacity: 1; }
+}
+
+@keyframes scale-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+@keyframes slide-in {
+  0% { transform: translateX(-20px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fade-in {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes glow-flash {
+  0%, 100% { box-shadow: 0 0 20px rgba(225, 6, 0, 0.5); }
+  50% { box-shadow: 0 0 40px rgba(225, 6, 0, 0.8); }
+}
+
+.animate-heartbeat {
+  animation: heartbeat 0.6s infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 1.5s infinite;
+}
+
+.animate-float-up {
+  animation: float-up 0.6s ease-out;
+}
+
+.animate-scale-pulse {
+  animation: scale-pulse 0.5s ease-in-out;
+}
+
+.animate-slide-in {
+  animation: slide-in 0.5s ease-out;
+}
+
+.animate-glow-flash {
+  animation: glow-flash 1s infinite;
 }
 
 @theme inline {
