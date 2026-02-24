@@ -6,33 +6,29 @@ import Link from 'next/link'
 
 export default function CPRPage() {
   const [compressions, setCompressions] = useState(0)
-  const [isCompressing, setIsCompressing] = useState(false)
-  const [feedback, setFeedback] = useState('')
-  const [bpm, setBpm] = useState(0)
-  const [rhythm, setRhythm] = useState('Waiting...')
-  const [phase, setPhase] = useState<'counting' | 'breathing' | 'aed'>('counting')
+  const [isRunning, setIsRunning] = useState(false)
+  const [phase, setPhase] = useState<'counting' | 'breathing'>('counting')
   const [breathTimer, setBreathTimer] = useState(0)
-  const [showAED, setShowAED] = useState(false)
-  const [aedShock, setAedShock] = useState(false)
+  const [pulseEffect, setPulseEffect] = useState(false)
 
-  const compressionTimesRef = useRef<number[]>([])
-  const metronomeRef = useRef<AudioContext | null>(null)
-  const oscillatorRef = useRef<OscillatorNode | null>(null)
-  const gainRef = useRef<GainNode | null>(null)
-  const isMetronomePlayingRef = useRef(false)
+  const compressionIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const breathIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+
+  const COMPRESSION_INTERVAL = 545 // 110 BPM = 545ms per compression
 
   // Initialize Web Audio API
   useEffect(() => {
     const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
-    metronomeRef.current = audioContext
+    audioContextRef.current = audioContext
   }, [])
 
-  // Play beep for metronome
+  // Play beep
   const playBeep = (frequency = 880, duration = 100) => {
-    if (!metronomeRef.current) return
+    if (!audioContextRef.current) return
 
     try {
-      const ctx = metronomeRef.current
+      const ctx = audioContextRef.current
       if (ctx.state === 'suspended') {
         ctx.resume()
       }
@@ -54,210 +50,153 @@ export default function CPRPage() {
     }
   }
 
-  // Start metronome (110 BPM)
-  const startMetronome = () => {
-    if (isMetronomePlayingRef.current) return
+  // Start CPR compressions
+  const startCPR = () => {
+    setIsRunning(true)
+    setPhase('counting')
+    setCompressions(0)
 
-    isMetronomePlayingRef.current = true
-    const beatInterval = (60 / 110) * 1000 // 110 BPM
-
-    const metronomeInterval = setInterval(() => {
-      if (phase === 'counting' && isCompressing) {
+    compressionIntervalRef.current = setInterval(() => {
+      setCompressions((prev) => {
+        const next = prev + 1
         playBeep(880, 50)
-      } else if (!isCompressing) {
-        clearInterval(metronomeInterval)
-        isMetronomePlayingRef.current = false
-      }
-    }, beatInterval)
-  }
+        setPulseEffect(true)
+        setTimeout(() => setPulseEffect(false), 100)
 
-  // Handle compression tap
-  const handleCompression = () => {
-    if (phase !== 'counting') return
-
-    const now = Date.now()
-    compressionTimesRef.current.push(now)
-
-    if (compressionTimesRef.current.length === 1) {
-      startMetronome()
-      setIsCompressing(true)
-    }
-
-    const newCompressions = compressions + 1
-    setCompressions(newCompressions)
-
-    // Calculate BPM from last 10 compressions
-    if (compressionTimesRef.current.length > 1) {
-      const recent = compressionTimesRef.current.slice(-11)
-      const timeDiff = recent[recent.length - 1] - recent[0]
-      const intervalsCount = recent.length - 1
-      const avgInterval = timeDiff / intervalsCount
-      const calculatedBpm = Math.round((60000 / avgInterval) * compressionTimesRef.current.length / compressions)
-
-      setBpm(calculatedBpm)
-
-      // Provide feedback
-      if (calculatedBpm < 100) {
-        setFeedback('Push Faster!')
-        setRhythm('Too Slow')
-      } else if (calculatedBpm > 120) {
-        setFeedback('Slow Down!')
-        setRhythm('Too Fast')
-      } else {
-        setFeedback('Perfect Rhythm!')
-        setRhythm('Perfect')
-      }
-
-      playBeep(440, 80)
-    }
-
-    // After 30 compressions, move to breathing
-    if (newCompressions >= 30) {
-      setCompressions(0)
-      compressionTimesRef.current = []
-      setIsCompressing(false)
-      setPhase('breathing')
-      setBreathTimer(2)
-    }
+        // After 30 compressions, move to breathing
+        if (next >= 30) {
+          if (compressionIntervalRef.current) {
+            clearInterval(compressionIntervalRef.current)
+          }
+          setPhase('breathing')
+          setBreathTimer(2)
+          return 0
+        }
+        return next
+      })
+    }, COMPRESSION_INTERVAL)
   }
 
   // Breathing timer
   useEffect(() => {
-    if (phase !== 'breathing') return
+    if (phase !== 'breathing' || !isRunning) return
 
     if (breathTimer > 0) {
-      const timer = setTimeout(() => setBreathTimer(breathTimer - 1), 1000)
-      return () => clearTimeout(timer)
-    } else if (breathTimer === 0 && phase === 'breathing') {
-      // Move to AED check
-      const random = Math.random() > 0.6
-      setAedShock(random)
-      setShowAED(true)
-      setPhase('aed')
+      breathIntervalRef.current = setTimeout(() => {
+        setBreathTimer(breathTimer - 1)
+      }, 1000)
+      return () => {
+        if (breathIntervalRef.current) clearTimeout(breathIntervalRef.current)
+      }
+    } else if (breathTimer === 0) {
+      // Resume compressions
+      setPhase('counting')
+      setCompressions(0)
+      startCPR()
     }
-  }, [breathTimer, phase])
+  }, [breathTimer, phase, isRunning])
 
-  // AED auto-resolution
-  useEffect(() => {
-    if (showAED) {
-      const timer = setTimeout(() => {
-        setShowAED(false)
-        if (aedShock) {
-          // After shock, return to CPR
-          setPhase('counting')
-        } else {
-          // No shock needed, resume CPR
-          setPhase('counting')
-        }
-      }, 3000)
-      return () => clearTimeout(timer)
+  // Stop CPR
+  const stopCPR = () => {
+    setIsRunning(false)
+    setPhase('counting')
+    setCompressions(0)
+    setBreathTimer(0)
+
+    if (compressionIntervalRef.current) {
+      clearInterval(compressionIntervalRef.current)
+      compressionIntervalRef.current = null
     }
-  }, [showAED, aedShock])
+    if (breathIntervalRef.current) {
+      clearTimeout(breathIntervalRef.current)
+      breathIntervalRef.current = null
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (compressionIntervalRef.current) clearInterval(compressionIntervalRef.current)
+      if (breathIntervalRef.current) clearTimeout(breathIntervalRef.current)
+    }
+  }, [])
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md space-y-8">
-        {/* Counter - Main Feature */}
-        {phase === 'counting' && (
+        {phase === 'counting' && isRunning && (
           <>
+            {/* BPM Display */}
             <div className="text-center">
-              <h1 className="text-gray-400 text-lg mb-4">COMPRESSIONS</h1>
-              <div className="text-9xl font-bold text-red-600 tabular-nums">
+              <p className="text-gray-400 text-lg">110 BPM</p>
+            </div>
+
+            {/* Compression Counter with Pulse */}
+            <div className="text-center">
+              <div
+                className={`text-9xl font-bold text-red-600 tabular-nums transition-transform duration-100 ${
+                  pulseEffect ? 'scale-110' : 'scale-100'
+                }`}
+              >
                 {compressions}
               </div>
               <p className="text-gray-400 mt-4 text-lg">/30</p>
             </div>
 
-            {/* Feedback */}
-            <div className="text-center space-y-4">
-              <div className="text-3xl font-bold text-white min-h-12">
-                {feedback}
-              </div>
-              <div className="text-lg text-gray-300">
-                {bpm > 0 && `${bpm} BPM - ${rhythm}`}
-              </div>
-            </div>
-
             {/* Instructions */}
             <div className="bg-gray-900 p-6 rounded-lg border-2 border-red-600 text-center">
-              <p className="text-white text-lg font-semibold mb-4">Push hard and fast</p>
-              <p className="text-gray-300 text-sm">
-                Compress the chest at least 2 inches deep at a rate of 100-120 compressions per minute
+              <p className="text-white text-lg font-semibold">Push hard and fast</p>
+              <p className="text-gray-300 text-sm mt-2">
+                Compressions running automatically
               </p>
             </div>
 
-            {/* Tap Button */}
+            {/* Stop CPR Button */}
             <button
-              onClick={handleCompression}
-              className="w-full py-16 bg-red-600 hover:bg-red-700 text-white text-2xl font-bold rounded-lg transition-colors active:bg-red-800"
+              onClick={stopCPR}
+              className="w-full py-6 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-lg transition-colors"
             >
-              TAP FOR COMPRESSION
+              STOP CPR
             </button>
-
-            {/* AED Button */}
-            {compressions > 0 && (
-              <Link href="/emergency/aed" className="block">
-                <Button
-                  variant="outline"
-                  className="w-full border-2 border-yellow-500 text-yellow-500 hover:bg-yellow-500 hover:text-black py-6 rounded-lg font-bold"
-                >
-                  Get AED
-                </Button>
-              </Link>
-            )}
           </>
         )}
 
-        {/* Breathing Phase */}
-        {phase === 'breathing' && (
+        {phase === 'breathing' && isRunning && (
           <>
-            <div className="text-center">
-              <h1 className="text-4xl font-bold text-white mb-8">GIVE 2 BREATHS</h1>
+            <div className="text-center space-y-8">
+              <h1 className="text-4xl font-bold text-white">GIVE 2 BREATHS</h1>
 
-              <div className="text-8xl font-bold text-red-600 mb-8">
+              <div className="text-8xl font-bold text-red-600">
                 {breathTimer}
               </div>
 
-              <p className="text-gray-300 text-lg mb-4">
-                Tilt head back, lift chin
-              </p>
-              <p className="text-gray-300 text-lg">
-                Give slow, deep breaths
-              </p>
+              <div className="bg-gray-900 p-6 rounded-lg border-2 border-red-600 text-center">
+                <p className="text-white text-lg font-semibold mb-3">Rescue Breathing</p>
+                <p className="text-gray-300 text-sm">
+                  Tilt head back, lift chin. Give slow, deep breaths. Resume CPR in {breathTimer} second{breathTimer !== 1 ? 's' : ''}.
+                </p>
+              </div>
             </div>
           </>
         )}
 
-        {/* AED Phase */}
-        {showAED && (
-          <div className="text-center space-y-8">
-            <div className="bg-yellow-900 border-4 border-yellow-500 p-8 rounded-lg space-y-4">
-              <h2 className="text-3xl font-bold text-yellow-400">AED ANALYZING</h2>
-              <div className="animate-pulse">
-                <p className="text-white text-lg">Scanning for abnormal rhythm...</p>
-              </div>
+        {!isRunning && (
+          <>
+            <div className="text-center space-y-6">
+              <h1 className="text-3xl font-bold text-white">CPR TRAINING</h1>
+              <p className="text-gray-400 text-lg">
+                Automatic compressions at 110 BPM with rescue breaths
+              </p>
             </div>
 
-            {aedShock && (
-              <div className="bg-red-900 border-4 border-red-500 p-8 rounded-lg space-y-4">
-                <h2 className="text-3xl font-bold text-red-400">SHOCK ADVISED</h2>
-                <p className="text-white text-lg">
-                  Apply pads and deliver shock
-                </p>
-                <div className="text-6xl font-bold text-red-500 animate-pulse">⚡</div>
-                <p className="text-gray-300 text-sm mt-6">STAND CLEAR - SHOCK DEPLOYING</p>
-              </div>
-            )}
-
-            {!aedShock && (
-              <div className="bg-green-900 border-4 border-green-500 p-8 rounded-lg space-y-4">
-                <h2 className="text-3xl font-bold text-green-400">NO SHOCK</h2>
-                <p className="text-white text-lg">
-                  Continue CPR
-                </p>
-              </div>
-            )}
-          </div>
+            {/* Start Button */}
+            <button
+              onClick={startCPR}
+              className="w-full py-16 bg-red-600 hover:bg-red-700 text-white text-2xl font-bold rounded-lg transition-colors"
+            >
+              START CPR
+            </button>
+          </>
         )}
 
         {/* Home Button */}
