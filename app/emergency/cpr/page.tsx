@@ -4,18 +4,24 @@ import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 
+type Phase = 'initial' | 'countdown' | 'compressions' | 'breathing'
+
 export default function CPRPage() {
-  const [compressions, setCompressions] = useState(0)
-  const [isRunning, setIsRunning] = useState(false)
-  const [phase, setPhase] = useState<'counting' | 'breathing'>('counting')
-  const [breathTimer, setBreathTimer] = useState(0)
+  const [phase, setPhase] = useState<Phase>('initial')
+  const [countdown, setCountdown] = useState(5)
   const [pulseEffect, setPulseEffect] = useState(false)
+  const [breathCount, setBreathCount] = useState(0)
 
-  const compressionIntervalRef = useRef<NodeJS.Timeout | null>(null)
-  const breathIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
+  const oscillatorRef = useRef<OscillatorNode | null>(null)
+  const gainRef = useRef<GainNode | null>(null)
+  const compressionCountRef = useRef(0)
+  const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const metronomeIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const breathIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const isRunningRef = useRef(false)
 
-  const COMPRESSION_INTERVAL = 545 // 110 BPM = 545ms per compression
+  const COMPRESSION_INTERVAL = 545 // 110 BPM
 
   // Initialize Web Audio API
   useEffect(() => {
@@ -23,8 +29,8 @@ export default function CPRPage() {
     audioContextRef.current = audioContext
   }, [])
 
-  // Play beep
-  const playBeep = (frequency = 880, duration = 100) => {
+  // Play single beep
+  const playBeep = () => {
     if (!audioContextRef.current) return
 
     try {
@@ -39,175 +45,211 @@ export default function CPRPage() {
       osc.connect(gain)
       gain.connect(ctx.destination)
 
-      osc.frequency.value = frequency
+      osc.frequency.value = 880
       gain.gain.setValueAtTime(0.3, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration / 1000)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
 
       osc.start(ctx.currentTime)
-      osc.stop(ctx.currentTime + duration / 1000)
+      osc.stop(ctx.currentTime + 0.1)
     } catch (e) {
       console.error('Beep error:', e)
     }
   }
 
-  // Start CPR compressions
-  const startCPR = () => {
-    setIsRunning(true)
-    setPhase('counting')
-    setCompressions(0)
+  // Start countdown
+  const startCountdown = () => {
+    setPhase('countdown')
+    setCountdown(5)
 
-    compressionIntervalRef.current = setInterval(() => {
-      setCompressions((prev) => {
-        const next = prev + 1
-        playBeep(880, 50)
-        setPulseEffect(true)
-        setTimeout(() => setPulseEffect(false), 100)
-
-        // After 30 compressions, move to breathing
-        if (next >= 30) {
-          if (compressionIntervalRef.current) {
-            clearInterval(compressionIntervalRef.current)
-          }
-          setPhase('breathing')
-          setBreathTimer(2)
+    countdownIntervalRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev === 1) {
+          playBeep()
           return 0
         }
-        return next
+        return prev - 1
       })
+    }, 1000)
+  }
+
+  // Handle countdown completion
+  useEffect(() => {
+    if (phase !== 'countdown') return
+    if (countdown === 0) {
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+      setTimeout(() => {
+        setPhase('compressions')
+        startMetronome()
+      }, 500)
+    }
+  }, [countdown, phase])
+
+  // Start metronome
+  const startMetronome = () => {
+    if (!isRunningRef.current) return
+    compressionCountRef.current = 0
+    setPulseEffect(false)
+
+    metronomeIntervalRef.current = setInterval(() => {
+      playBeep()
+      setPulseEffect(true)
+      setTimeout(() => setPulseEffect(false), 150)
+
+      compressionCountRef.current += 1
+
+      // After 30 compressions, pause and show breathing
+      if (compressionCountRef.current >= 30) {
+        if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+        setPhase('breathing')
+        setBreathCount(1)
+      }
     }, COMPRESSION_INTERVAL)
   }
 
-  // Breathing timer
+  // Handle breathing phase
   useEffect(() => {
-    if (phase !== 'breathing' || !isRunning) return
+    if (phase !== 'breathing') return
 
-    if (breathTimer > 0) {
+    if (breathCount === 1) {
       breathIntervalRef.current = setTimeout(() => {
-        setBreathTimer(breathTimer - 1)
+        setBreathCount(2)
       }, 1000)
-      return () => {
-        if (breathIntervalRef.current) clearTimeout(breathIntervalRef.current)
-      }
-    } else if (breathTimer === 0) {
-      // Resume compressions
-      setPhase('counting')
-      setCompressions(0)
-      startCPR()
+    } else if (breathCount === 2) {
+      breathIntervalRef.current = setTimeout(() => {
+        // Resume compressions
+        setPhase('compressions')
+        startMetronome()
+      }, 1000)
     }
-  }, [breathTimer, phase, isRunning])
+
+    return () => {
+      if (breathIntervalRef.current) clearTimeout(breathIntervalRef.current)
+    }
+  }, [phase, breathCount])
+
+  // Start CPR
+  const handleStartCPR = () => {
+    isRunningRef.current = true
+    startCountdown()
+  }
 
   // Stop CPR
-  const stopCPR = () => {
-    setIsRunning(false)
-    setPhase('counting')
-    setCompressions(0)
-    setBreathTimer(0)
+  const handleStopCPR = () => {
+    isRunningRef.current = false
+    setPhase('initial')
+    setCountdown(5)
+    setPulseEffect(false)
+    setBreathCount(0)
+    compressionCountRef.current = 0
 
-    if (compressionIntervalRef.current) {
-      clearInterval(compressionIntervalRef.current)
-      compressionIntervalRef.current = null
-    }
-    if (breathIntervalRef.current) {
-      clearTimeout(breathIntervalRef.current)
-      breathIntervalRef.current = null
-    }
+    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+    if (breathIntervalRef.current) clearTimeout(breathIntervalRef.current)
   }
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (compressionIntervalRef.current) clearInterval(compressionIntervalRef.current)
+      if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current)
+      if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
       if (breathIntervalRef.current) clearTimeout(breathIntervalRef.current)
     }
   }, [])
 
   return (
     <main className="min-h-screen bg-black flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md space-y-8">
-        {phase === 'counting' && isRunning && (
-          <>
-            {/* BPM Display */}
-            <div className="text-center">
-              <p className="text-gray-400 text-lg">110 BPM</p>
+      <div className="w-full h-screen flex flex-col items-center justify-center">
+        {/* Initial Screen */}
+        {phase === 'initial' && (
+          <div className="w-full max-w-md space-y-8 text-center">
+            <h1 className="text-4xl font-bold text-white">CPR GUIDANCE</h1>
+
+            <div className="space-y-4 text-gray-300">
+              <p className="text-xl">Place hands in center of chest</p>
+              <p className="text-lg">Prepare to begin compressions</p>
             </div>
 
-            {/* Compression Counter with Pulse */}
-            <div className="text-center">
-              <div
-                className={`text-9xl font-bold text-red-600 tabular-nums transition-transform duration-100 ${
-                  pulseEffect ? 'scale-110' : 'scale-100'
-                }`}
+            <button
+              onClick={handleStartCPR}
+              className="w-full py-20 bg-red-600 hover:bg-red-700 text-white text-3xl font-bold rounded-lg transition-colors"
+            >
+              Start CPR
+            </button>
+
+            <Link href="/" className="block">
+              <Button
+                variant="ghost"
+                className="w-full text-gray-400 hover:text-white py-4"
               >
-                {compressions}
+                ← Back
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* Countdown Screen */}
+        {phase === 'countdown' && (
+          <div className="text-center space-y-12">
+            {countdown > 0 ? (
+              <>
+                <p className="text-gray-400 text-2xl">Prepare yourself</p>
+                <div className="text-9xl font-bold text-red-600">
+                  {countdown}
+                </div>
+              </>
+            ) : (
+              <p className="text-gray-400 text-2xl">Starting...</p>
+            )}
+          </div>
+        )}
+
+        {/* Compressions Screen */}
+        {phase === 'compressions' && (
+          <div className="text-center space-y-12 w-full">
+            {/* Animated Pulse Circle */}
+            <div className="flex justify-center">
+              <div
+                className={`w-48 h-48 rounded-full border-4 border-red-600 transition-all duration-150 ${
+                  pulseEffect ? 'scale-110 bg-red-600 bg-opacity-20' : 'bg-transparent'
+                }`}
+              />
+            </div>
+
+            {/* Guidance Text */}
+            <div className="space-y-6 px-4">
+              <h2 className="text-6xl font-bold text-white">Push Hard</h2>
+
+              <div className="space-y-3 text-gray-300">
+                <p className="text-3xl font-semibold">100–120 per minute</p>
+                <p className="text-2xl">5–6 cm depth</p>
               </div>
-              <p className="text-gray-400 mt-4 text-lg">/30</p>
             </div>
 
-            {/* Instructions */}
-            <div className="bg-gray-900 p-6 rounded-lg border-2 border-red-600 text-center">
-              <p className="text-white text-lg font-semibold">Push hard and fast</p>
-              <p className="text-gray-300 text-sm mt-2">
-                Compressions running automatically
-              </p>
-            </div>
-
-            {/* Stop CPR Button */}
+            {/* Stop Button */}
             <button
-              onClick={stopCPR}
-              className="w-full py-6 bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-lg transition-colors"
+              onClick={handleStopCPR}
+              className="w-32 py-4 mx-auto bg-yellow-600 hover:bg-yellow-700 text-white font-bold rounded-lg transition-colors text-lg"
             >
-              STOP CPR
+              Stop
             </button>
-          </>
+          </div>
         )}
 
-        {phase === 'breathing' && isRunning && (
-          <>
-            <div className="text-center space-y-8">
-              <h1 className="text-4xl font-bold text-white">GIVE 2 BREATHS</h1>
+        {/* Breathing Screen */}
+        {phase === 'breathing' && (
+          <div className="text-center space-y-12">
+            <h1 className="text-5xl font-bold text-white">Give 2 Breaths</h1>
 
-              <div className="text-8xl font-bold text-red-600">
-                {breathTimer}
-              </div>
-
-              <div className="bg-gray-900 p-6 rounded-lg border-2 border-red-600 text-center">
-                <p className="text-white text-lg font-semibold mb-3">Rescue Breathing</p>
-                <p className="text-gray-300 text-sm">
-                  Tilt head back, lift chin. Give slow, deep breaths. Resume CPR in {breathTimer} second{breathTimer !== 1 ? 's' : ''}.
-                </p>
-              </div>
-            </div>
-          </>
-        )}
-
-        {!isRunning && (
-          <>
-            <div className="text-center space-y-6">
-              <h1 className="text-3xl font-bold text-white">CPR TRAINING</h1>
-              <p className="text-gray-400 text-lg">
-                Automatic compressions at 110 BPM with rescue breaths
-              </p>
+            <div className="text-8xl font-bold text-red-600">
+              {breathCount}
             </div>
 
-            {/* Start Button */}
-            <button
-              onClick={startCPR}
-              className="w-full py-16 bg-red-600 hover:bg-red-700 text-white text-2xl font-bold rounded-lg transition-colors"
-            >
-              START CPR
-            </button>
-          </>
+            <div className="text-xl text-gray-300 max-w-md">
+              <p>Tilt head back, lift chin</p>
+              <p className="mt-2">Give slow, deep breath</p>
+            </div>
+          </div>
         )}
-
-        {/* Home Button */}
-        <Link href="/" className="block pt-4">
-          <Button
-            variant="ghost"
-            className="w-full text-gray-400 hover:text-white py-4"
-          >
-            ← Home
-          </Button>
-        </Link>
       </div>
     </main>
   )
