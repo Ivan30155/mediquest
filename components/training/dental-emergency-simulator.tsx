@@ -209,10 +209,17 @@ export default function DentalEmergencySimulator() {
 
         {/* Progress Bar */}
         <div className="max-w-4xl mx-auto mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-sm text-[#AAAAAA] font-semibold">Level {currentLevelIndex + 1} / {selectedCase.totalLevels}</span>
-            <span className="text-sm text-[#E10600] font-black">Score: {totalScore}</span>
-          </div>
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm text-[#AAAAAA] font-semibold">Level {currentLevelIndex + 1} / {selectedCase.totalLevels}</span>
+              <div className="relative">
+                <span className="text-sm text-[#E10600] font-black">Score: {totalScore}</span>
+                {showExplanation && (
+                  <div className="absolute -top-8 -right-2 text-[#2ECC71] font-black text-lg animate-score-pop">
+                    +{selectedCase.levels[currentLevelIndex].score}
+                  </div>
+                )}
+              </div>
+            </div>
           <div className="w-full h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-[#E10600] to-[#FF3B3B] transition-all duration-500"
@@ -223,7 +230,61 @@ export default function DentalEmergencySimulator() {
 
         {/* Main Content */}
         <div className="max-w-4xl mx-auto">
-          <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#E10600] border-opacity-30 rounded-2xl p-8 mb-8"
+          {/* Animated Medical Visual Section */}
+          <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#E10600] border-opacity-30 rounded-2xl p-8 mb-8 relative overflow-hidden min-h-[200px] flex items-center justify-center"
+            style={{ boxShadow: 'inset 0 0 40px rgba(225, 6, 0, 0.08)' }}
+          >
+            {/* Animated Background Pulse */}
+            <div className="absolute inset-0 opacity-10 pointer-events-none">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#E10600]/0 via-[#E10600]/50 to-[#E10600]/0 animate-pulse" />
+            </div>
+
+            {/* Medical Animation Content */}
+            <div className="relative z-10 text-center w-full">
+              {selectedCase.id === 'silent-allergen' ? (
+                <div className="space-y-4">
+                  <div className="inline-block">
+                    <div className="text-6xl animate-pulse">⚠️</div>
+                  </div>
+                  <p className="text-[#AAAAAA] text-sm font-semibold">Allergic Response Simulation</p>
+                  {currentLevelIndex === 0 && (
+                    <div className="mt-4 inline-block px-6 py-2 bg-[#E10600]/20 border border-[#E10600] rounded-lg">
+                      <p className="text-[#FF3B3B] text-xs font-bold">CRITICAL: Facial Swelling Detected</p>
+                    </div>
+                  )}
+                  {currentLevelIndex === 1 && (
+                    <div className="mt-4 space-y-2">
+                      <div className="h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
+                        <div className="h-full bg-[#FF3B3B] animate-pulse" style={{ width: '75%' }} />
+                      </div>
+                      <p className="text-[#AAAAAA] text-xs">Airway Obstruction: 75%</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="inline-block">
+                    <div className="text-6xl animate-bounce">💉</div>
+                  </div>
+                  <p className="text-[#AAAAAA] text-sm font-semibold">Hypoglycemic Crisis Simulation</p>
+                  {currentLevelIndex === 0 && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-[#FF3B3B] font-bold text-lg">Blood Glucose: 38 mg/dL</p>
+                      <p className="text-[#AAAAAA] text-xs">CRITICALLY LOW</p>
+                    </div>
+                  )}
+                  {currentLevelIndex >= 2 && (
+                    <div className="mt-4 inline-flex items-center gap-2">
+                      <div className="w-2 h-2 bg-[#2ECC71] rounded-full animate-pulse" />
+                      <p className="text-[#2ECC71] text-xs font-semibold">Vital Signs Stabilizing</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#E10600] border-opacity-30 rounded-2xl p-8 mb-8 animate-slide-up"
             style={{ boxShadow: 'inset 0 0 40px rgba(225, 6, 0, 0.08)' }}
           >
             {/* Medical Context */}
@@ -244,7 +305,7 @@ export default function DentalEmergencySimulator() {
 
               {/* MCQ Options */}
               <div className="space-y-3">
-                {currentLevel.options.map((option) => (
+                {currentLevel.options.map((option, idx) => (
                   <button
                     key={option.id}
                     onClick={() => !isAnswered && handleAnswerSelect(option.id)}
@@ -252,10 +313,13 @@ export default function DentalEmergencySimulator() {
                     className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                       selectedAnswer === option.id
                         ? option.isCorrect
-                          ? 'border-[#2ECC71] bg-[#2ECC71] bg-opacity-10 text-[#2ECC71]'
-                          : 'border-[#FF3B3B] bg-[#FF3B3B] bg-opacity-10 text-[#FF3B3B]'
+                          ? 'border-[#2ECC71] bg-[#2ECC71] bg-opacity-10 text-[#2ECC71] animate-pulse'
+                          : 'border-[#FF3B3B] bg-[#FF3B3B] bg-opacity-10 text-[#FF3B3B] animate-pulse'
                         : 'border-[#333] bg-[#0D0D0D] text-[#CCCCCC] hover:border-[#E10600] cursor-pointer'
                     } ${isAnswered ? 'cursor-default' : ''}`}
+                    style={{ 
+                      animation: !isAnswered ? `fade-in 0.4s ease-out ${idx * 0.1}s both` : 'none'
+                    }}
                   >
                     <span className="font-bold">{option.id.toUpperCase()}</span>
                     <span className="ml-4">{option.text}</span>
@@ -327,7 +391,23 @@ export default function DentalEmergencySimulator() {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
           }
+          @keyframes slide-up {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes score-pop {
+            0% { transform: scale(0.8) translateY(10px); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1) translateY(-30px); opacity: 0; }
+          }
+          @keyframes pulse-glow {
+            0%, 100% { box-shadow: inset 0 0 40px rgba(225, 6, 0, 0.08), 0 0 20px rgba(225, 6, 0, 0.1); }
+            50% { box-shadow: inset 0 0 40px rgba(225, 6, 0, 0.15), 0 0 40px rgba(225, 6, 0, 0.25); }
+          }
           .animate-fade-in { animation: fade-in 0.4s ease-out; }
+          .animate-slide-up { animation: slide-up 0.5s ease-out; }
+          .animate-score-pop { animation: score-pop 0.8s ease-out forwards; }
+          .animate-pulse-glow { animation: pulse-glow 2s ease-in-out infinite; }
         `}</style>
       </main>
     )
