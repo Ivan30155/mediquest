@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 export default function HomePage() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -75,6 +76,11 @@ export default function HomePage() {
 
       {/* Content */}
       <div className="relative z-10 text-center space-y-12 w-full max-w-2xl px-6">
+        {/* Theme Toggle */}
+        <div className="flex justify-center">
+          <ThemeToggle />
+        </div>
+
         {/* Header */}
         <div className="space-y-6 animate-fade-in">
           <h1 className="text-7xl md:text-8xl font-black tracking-tight text-[#F5F5F5]">

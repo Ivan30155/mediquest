@@ -105,7 +105,7 @@ export function EmergencyCPRFlow() {
 
   // Advance to next step with strict sequential enforcement - STOPS at step 6
   const advanceStepSequential = useCallback(() => {
-    if (isAdvancingRef.current) return // Prevent double execution
+    if (isAdvancingRef.current) return
     isAdvancingRef.current = true
 
     stopSpeech()
@@ -286,12 +286,12 @@ export function EmergencyCPRFlow() {
     setCycleCount(1)
   }, [stopSpeech, clearAllIntervals])
 
-  // Restart compression cycle (step 4) after rescue breaths
+  // Restart compression cycle (step 5) after rescue breaths
   const restartCompressionCycle = useCallback(() => {
     setShowRestartDialog(false)
     stopSpeech()
     clearAllIntervals()
-    setCurrentStepIndex(4) // Compression step
+    setCurrentStepIndex(4) // Step 5: Compression step
     setCompressionCount(0)
     setTimeRemaining(0)
     setIsPaused(false)
