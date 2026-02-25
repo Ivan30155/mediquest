@@ -26,7 +26,6 @@ export function EmergencyCPRFlow() {
   const [showTransition, setShowTransition] = useState(false)
   const [pulseAnimation, setPulseAnimation] = useState(false)
   const [showSOSPopup, setShowSOSPopup] = useState(false)
-  const [showRestartDialog, setShowRestartDialog] = useState(false)
 
   // ===== REFS: Stable references =====
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -254,18 +253,17 @@ export function EmergencyCPRFlow() {
     setCycleCount(1)
   }, [stopSpeech, clearAllIntervals])
 
-  // Handle restart with dialog
+  // Handle button click - restart on last step, advance otherwise
   const handleRestartClick = useCallback(() => {
     if (isLastStep) {
-      setShowRestartDialog(true)
+      restartFromBeginning()
     } else {
       advanceStepSequential()
     }
-  }, [isLastStep, advanceStepSequential])
+  }, [isLastStep, advanceStepSequential, restartFromBeginning])
 
   // Restart from step 1
   const restartFromBeginning = useCallback(() => {
-    setShowRestartDialog(false)
     stopSpeech()
     clearAllIntervals()
     setCurrentStepIndex(0)
@@ -276,21 +274,6 @@ export function EmergencyCPRFlow() {
     stepNarrationStartedRef.current = false
     isAdvancingRef.current = false
     setCycleCount(1)
-  }, [stopSpeech, clearAllIntervals])
-
-  // Restart compression cycle - goes directly to Step 5 (Compressions with metronome)
-  const restartCompressionCycle = useCallback(() => {
-    setShowRestartDialog(false)
-    stopSpeech()
-    clearAllIntervals()
-    setCurrentStepIndex(4) // Index 4 = Step 5 (Compressions) - NO increment logic
-    setCompressionCount(0)
-    setTimeRemaining(0)
-    setIsPaused(false)
-    setPulseAnimation(false)
-    stepNarrationStartedRef.current = false
-    isAdvancingRef.current = false
-    setCycleCount((c) => c + 1)
   }, [stopSpeech, clearAllIntervals])
 
   // HOME SCREEN
@@ -596,47 +579,6 @@ export function EmergencyCPRFlow() {
             >
               Close
             </button>
-          </div>
-        </div>
-      )}
-
-      {/* Restart Dialog Modal */}
-      {showRestartDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowRestartDialog(false)} />
-          <div className="relative bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border-2 border-[#E10600] rounded-3xl p-8 max-w-sm w-full shadow-2xl"
-            style={{ boxShadow: 'inset 0 0 50px rgba(225, 6, 0, 0.15), 0 0 60px rgba(225, 6, 0, 0.4)' }}
-          >
-            <h3 className="text-2xl font-black text-[#F5F5F5] mb-4">Emergency Cycle Complete</h3>
-            <p className="text-[#AAAAAA] mb-8 leading-relaxed">
-              What would you like to do?
-            </p>
-
-            <div className="space-y-3">
-              {/* Option 1: Restart from beginning */}
-              <button
-                onClick={restartFromBeginning}
-                className="w-full px-6 py-4 bg-[#E10600] hover:bg-[#FF3B3B] text-white font-bold rounded-xl transition-all duration-200 active:scale-95"
-              >
-                Restart from Step 1
-              </button>
-
-              {/* Option 2: Restart compression with metronome */}
-              <button
-                onClick={restartCompressionCycle}
-                className="w-full px-6 py-4 bg-[#0066CC] hover:bg-[#0052A3] text-white font-bold rounded-xl transition-all duration-200 active:scale-95"
-              >
-                Repeat Step 5 (Metronome) & Cycle
-              </button>
-
-              {/* Cancel */}
-              <button
-                onClick={() => setShowRestartDialog(false)}
-                className="w-full px-6 py-3 bg-[#1A1A1A] border border-[#333] text-[#AAAAAA] hover:text-[#F5F5F5] font-semibold rounded-xl transition-all"
-              >
-                Cancel
-              </button>
-            </div>
           </div>
         </div>
       )}
