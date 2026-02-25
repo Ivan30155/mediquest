@@ -21,7 +21,6 @@ export default function DentalEmergencySimulator() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [showExplanation, setShowExplanation] = useState(false)
 
-  // ---------------- CASE SELECT ----------------
   const handleCaseSelect = (caseId: CaseType) => {
     const caseData =
       caseId === 'silent-allergen'
@@ -36,12 +35,12 @@ export default function DentalEmergencySimulator() {
     setShowExplanation(false)
   }
 
-  // ---------------- ANSWER SELECT ----------------
   const handleAnswerSelect = (answerId: string) => {
-    setSelectedAnswer(answerId)
+    if (!showExplanation) {
+      setSelectedAnswer(answerId)
+    }
   }
 
-  // ---------------- SUBMIT ANSWER ----------------
   const handleSubmitAnswer = () => {
     if (!selectedAnswer || !selectedCase) return
 
@@ -50,14 +49,13 @@ export default function DentalEmergencySimulator() {
       (opt) => opt.id === selectedAnswer
     )
 
-    if (selectedOption?.isCorrect === true) {
-      setScore((prev) => prev + currentLevel.score)
+    if (selectedOption?.isCorrect) {
+      setScore((prev) => prev + 1)
     }
 
     setShowExplanation(true)
   }
 
-  // ---------------- NEXT LEVEL ----------------
   const handleNextLevel = () => {
     if (!selectedCase) return
 
@@ -70,7 +68,6 @@ export default function DentalEmergencySimulator() {
     }
   }
 
-  // ---------------- RESTART ----------------
   const handleRestartCase = () => {
     setGameState('case-select')
     setSelectedCase(null)
@@ -80,7 +77,6 @@ export default function DentalEmergencySimulator() {
     setShowExplanation(false)
   }
 
-  // ================= CASE SELECT SCREEN =================
   if (gameState === 'case-select') {
     return (
       <main className="min-h-screen flex items-center justify-center bg-black text-white p-6">
@@ -112,10 +108,7 @@ export default function DentalEmergencySimulator() {
           </div>
 
           <div className="text-center mt-10">
-            <button
-              onClick={() => router.push('/')}
-              className="underline"
-            >
+            <button onClick={() => router.push('/')} className="underline">
               Back to Home
             </button>
           </div>
@@ -124,13 +117,8 @@ export default function DentalEmergencySimulator() {
     )
   }
 
-  // ================= CASE COMPLETE SCREEN =================
   if (gameState === 'case-complete' && selectedCase) {
-    const maxScore = selectedCase.levels.reduce(
-      (sum, level) => sum + level.score,
-      0
-    )
-
+    const maxScore = selectedCase.levels.length
     const percentage =
       maxScore > 0
         ? Math.round((score / maxScore) * 100)
@@ -169,10 +157,9 @@ export default function DentalEmergencySimulator() {
     )
   }
 
-  // ================= PLAYING SCREEN =================
   if (gameState === 'playing' && selectedCase) {
     const currentLevel = selectedCase.levels[currentLevelIndex]
-    const isAnswered = selectedAnswer !== null
+    const isAnswered = showExplanation   // ✅ FIXED HERE
 
     return (
       <main className="min-h-screen bg-black text-white p-6">
@@ -205,16 +192,17 @@ export default function DentalEmergencySimulator() {
               {currentLevel.options.map((option) => (
                 <button
                   key={option.id}
-                  onClick={() =>
-                    !isAnswered &&
-                    handleAnswerSelect(option.id)
-                  }
+                  onClick={() => handleAnswerSelect(option.id)}
                   disabled={isAnswered}
                   className={`w-full text-left p-3 rounded-lg border ${
-                    selectedAnswer === option.id
+                    showExplanation
                       ? option.isCorrect
                         ? 'border-green-500 bg-green-900'
-                        : 'border-red-500 bg-red-900'
+                        : selectedAnswer === option.id
+                        ? 'border-red-500 bg-red-900'
+                        : 'border-gray-600 bg-gray-800'
+                      : selectedAnswer === option.id
+                      ? 'border-red-500 bg-gray-700'
                       : 'border-gray-600 bg-gray-800 hover:border-red-500'
                   }`}
                 >
@@ -233,7 +221,7 @@ export default function DentalEmergencySimulator() {
             </div>
           )}
 
-          {!isAnswered ? (
+          {!showExplanation ? (
             <button
               onClick={handleSubmitAnswer}
               disabled={!selectedAnswer}

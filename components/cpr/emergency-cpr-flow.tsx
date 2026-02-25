@@ -29,13 +29,24 @@ export function EmergencyCPRFlow() {
   const [showRestartDialog, setShowRestartDialog] = useState(false)
 
   // ===== REFS: Stable references =====
+   // ===== REFS: Stable references =====
   const audioContextRef = useRef<AudioContext | null>(null)
+
+  // Prevent auto-advance during restart
+  const blockAutoAdvanceRef = useRef<boolean>(false)
+
   const audioInitializedRef = useRef(false)
+
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const compressionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const metronomeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   const pausedTimeRef = useRef(0)
+
+  // Prevent duplicate narration
   const stepNarrationStartedRef = useRef(false)
+
+  // Prevent multiple step increments
   const isAdvancingRef = useRef(false)
 
   const currentStep: CPRStep | null =
@@ -105,35 +116,40 @@ export function EmergencyCPRFlow() {
 
   // Advance to next step with strict sequential enforcement
   const advanceStepSequential = useCallback(() => {
-    if (isAdvancingRef.current) return
-    isAdvancingRef.current = true
+  // Prevent double execution
+  if (isAdvancingRef.current || blockAutoAdvanceRef.current) return
 
-    stopSpeech()
-    clearAllIntervals()
-    setPulseAnimation(false)
-    setIsPaused(false)
-    stepNarrationStartedRef.current = false
+  isAdvancingRef.current = true
 
-    setShowTransition(true)
+  stopSpeech()
+  clearAllIntervals()
+  setPulseAnimation(false)
+  setIsPaused(false)
+  stepNarrationStartedRef.current = false
+
+  setShowTransition(true)
+
+  setTimeout(() => {
+    setCurrentStepIndex((prevIndex) => {
+      let nextIndex = prevIndex + 1
+
+      // Prevent overflow
+      if (nextIndex >= cprSteps.length) {
+        setIsRunning(false)
+        return cprSteps.length - 1
+      }
+
+      return nextIndex
+    })
+
+    setShowTransition(false)
+
+    // Release lock safely after state update
     setTimeout(() => {
-      setCurrentStepIndex((prevIndex) => {
-        let nextIndex = prevIndex + 1
-        if (nextIndex >= cprSteps.length) {
-          nextIndex = cprSteps.length - 1
-          setTimeout(() => {
-            setIsRunning(false)
-            setShowTransition(false)
-            isAdvancingRef.current = false
-          }, 1000)
-          return nextIndex
-        }
-        if (nextIndex < 0) nextIndex = 0
-        isAdvancingRef.current = false
-        return nextIndex
-      })
-      setShowTransition(false)
-    }, 400)
-  }, [stopSpeech, clearAllIntervals])
+      isAdvancingRef.current = false
+    }, 100)
+  }, 400)
+}, [stopSpeech, clearAllIntervals])
 
   // Pause: Freeze all timers and audio
   const pauseCPR = useCallback(() => {
@@ -177,12 +193,13 @@ export function EmergencyCPRFlow() {
     stepNarrationStartedRef.current = true
 
     // Define the auto-advance callback (only for timed steps)
-    const onNarrationComplete = () => {
-      if (currentStep.type === "timed") {
-        advanceStepSequential()
-      }
-    }
+   const onNarrationComplete = () => {
+  if (blockAutoAdvanceRef.current) return
 
+  if (currentStep.type === "timed") {
+    advanceStepSequential()
+  }
+}
     // Start narration with completion callback
     speak(currentStep.narration, onNarrationComplete)
 
@@ -212,7 +229,9 @@ export function EmergencyCPRFlow() {
           const newCount = prev + 1
           if (newCount >= TARGET_COMPRESSIONS) {
             // Auto-advance after compressions complete
-            advanceStepSequential()
+            if (!blockAutoAdvanceRef.current) {
+              advanceStepSequential()
+  }
             return TARGET_COMPRESSIONS
           }
           return newCount
@@ -267,36 +286,59 @@ export function EmergencyCPRFlow() {
 
   // Restart from step 1
   const restartFromBeginning = useCallback(() => {
-    setShowRestartDialog(false)
-    stopSpeech()
-    clearAllIntervals()
-    setCurrentStepIndex(0)
-    setCompressionCount(0)
-    setTimeRemaining(0)
-    setIsPaused(false)
-    setPulseAnimation(false)
-    stepNarrationStartedRef.current = false
-    isAdvancingRef.current = false
-    setCycleCount(1)
-    setIsRunning(true)
-  }, [stopSpeech, clearAllIntervals])
+  setShowRestartDialog(false)
 
-  // Restart compression cycle - goes directly to Step 5 (Compressions with metronome)
-  const restartCompressionCycle = useCallback(() => {
-    setShowRestartDialog(false)
-    stopSpeech()
-    clearAllIntervals()
-    setCurrentStepIndex(4) // Index 4 = Step 5 (Compressions) - NO increment logic
-    setCompressionCount(0)
-    setTimeRemaining(0)
-    setIsPaused(false)
-    setPulseAnimation(false)
-    stepNarrationStartedRef.current = false
-    isAdvancingRef.current = false
-    setCycleCount((c) => c + 1)
-    // Immediately trigger narration start by setting running state
-    setIsRunning(true)
-  }, [stopSpeech, clearAllIntervals])
+  blockAutoAdvanceRef.current = true
+
+  stopSpeech()
+  clearAllIntervals()
+
+  setCurrentStepIndex(0)
+  setCompressionCount(0)
+  setTimeRemaining(0)
+  setIsPaused(false)
+  setPulseAnimation(false)
+  setCycleCount(1)
+
+  stepNarrationStartedRef.current = false
+  isAdvancingRef.current = false
+
+  setIsRunning(true)
+
+  setTimeout(() => {
+    blockAutoAdvanceRef.current = false
+  }, 600)
+}, [stopSpeech, clearAllIntervals])
+
+ // Restart compression cycle - goes directly to Step 5
+const restartCompressionCycle = useCallback(() => {
+  setShowRestartDialog(false)
+
+  // Block auto-advance temporarily
+  blockAutoAdvanceRef.current = true
+
+  stopSpeech()
+  clearAllIntervals()
+
+  // Step 5 = index 4
+  setCurrentStepIndex(4)
+
+  setCompressionCount(0)
+  setTimeRemaining(0)
+  setIsPaused(false)
+  setPulseAnimation(false)
+
+  stepNarrationStartedRef.current = false
+  isAdvancingRef.current = false
+
+  setCycleCount((c) => c + 1)
+  setIsRunning(true)
+
+  // Unlock after short delay
+  setTimeout(() => {
+    blockAutoAdvanceRef.current = false
+  }, 500)
+}, [stopSpeech, clearAllIntervals])
 
   // HOME SCREEN
   if (currentStepIndex === -1) {
