@@ -25,6 +25,7 @@ export function EmergencyCPRFlow() {
   const [cycleCount, setCycleCount] = useState(1)
   const [showTransition, setShowTransition] = useState(false)
   const [pulseAnimation, setPulseAnimation] = useState(false)
+  const [showSOSPopup, setShowSOSPopup] = useState(false)
 
   // ===== REFS: Stable references =====
   const audioContextRef = useRef<AudioContext | null>(null)
@@ -33,6 +34,8 @@ export function EmergencyCPRFlow() {
   const compressionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const metronomeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const pausedTimeRef = useRef(0)
+  const stepNarrationStartedRef = useRef(false)
+  const isAdvancingRef = useRef(false)
 
   const currentStep: CPRStep | null =
     currentStepIndex >= 0 && currentStepIndex < cprSteps.length
@@ -151,26 +154,49 @@ export function EmergencyCPRFlow() {
     }
   }, [stopSpeech, clearAllIntervals])
 
-  // Start step narration and timers
+  // Start step narration and timers - FIXED to prevent step skipping
   useEffect(() => {
-    if (!currentStep || !isRunning || isPaused) return
+    if (!currentStep || !isRunning || isPaused) {
+      stepNarrationStartedRef.current = false
+      return
+    }
 
-    // Start narration
-    speak(currentStep.narration)
+    // Prevent duplicate narration of same step
+    if (stepNarrationStartedRef.current) {
+      return
+    }
+    stepNarrationStartedRef.current = true
 
-    // Handle timed steps
+    // Define the auto-advance callback (only for non-compression steps)
+    const onNarrationComplete = () => {
+      if (currentStep.type === "timed" && !isAdvancingRef.current) {
+        isAdvancingRef.current = true
+        clearAllIntervals()
+        setShowTransition(true)
+        setTimeout(() => {
+          setCurrentStepIndex((prevIndex) => {
+            let nextIndex = prevIndex + 1
+            if (nextIndex >= cprSteps.length) {
+              setCycleCount((c) => c + 1)
+              nextIndex = 4
+            }
+            isAdvancingRef.current = false
+            stepNarrationStartedRef.current = false
+            return nextIndex
+          })
+          setShowTransition(false)
+        }, 400)
+      }
+    }
+
+    // Start narration with completion callback
+    speak(currentStep.narration, onNarrationComplete)
+
+    // Handle timed steps - countdown timer only
     if (currentStep.type === "timed") {
       setTimeRemaining(currentStep.duration)
-
       timerIntervalRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          const newTime = prev - 1
-          if (newTime <= 0) {
-            advanceStep()
-            return 0
-          }
-          return newTime
-        })
+        setTimeRemaining((prev) => Math.max(0, prev - 1))
       }, 1000)
     }
 
@@ -191,7 +217,25 @@ export function EmergencyCPRFlow() {
         setCompressionCount((prev) => {
           const newCount = prev + 1
           if (newCount >= TARGET_COMPRESSIONS) {
-            advanceStep()
+            // Auto-advance after compressions complete
+            if (!isAdvancingRef.current) {
+              isAdvancingRef.current = true
+              clearAllIntervals()
+              setShowTransition(true)
+              setTimeout(() => {
+                setCurrentStepIndex((prevIndex) => {
+                  let nextIndex = prevIndex + 1
+                  if (nextIndex >= cprSteps.length) {
+                    setCycleCount((c) => c + 1)
+                    nextIndex = 4
+                  }
+                  isAdvancingRef.current = false
+                  stepNarrationStartedRef.current = false
+                  return nextIndex
+                })
+                setShowTransition(false)
+              }, 400)
+            }
             return TARGET_COMPRESSIONS
           }
           return newCount
@@ -200,16 +244,14 @@ export function EmergencyCPRFlow() {
 
       // Countdown timer (independent of beat counter)
       timerIntervalRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          return Math.max(0, prev - 1)
-        })
+        setTimeRemaining((prev) => Math.max(0, prev - 1))
       }, 1000)
     }
 
     return () => {
       clearAllIntervals()
     }
-  }, [currentStepIndex, isRunning, isPaused, currentStep, playBeep, advanceStep, clearAllIntervals, speak])
+  }, [currentStepIndex, isRunning, isPaused, currentStep, playBeep, clearAllIntervals, speak])
 
   const startEmergency = useCallback(() => {
     initializeAudio()
@@ -408,7 +450,18 @@ export function EmergencyCPRFlow() {
       </div>
 
       {/* Bottom actions */}
-      <footer className="flex items-center gap-3 px-4 py-4 bg-[#0D0D0D] border-t border-[#E10600]/20">
+      <footer className="flex items-center gap-3 px-4 py-4 bg-[#0D0D0D] border-t border-[#E10600]/20 relative">
+        {/* SOS Button - visible only in Step 2 */}
+        {currentStep?.id === 2 && (
+          <button
+            onClick={() => setShowSOSPopup(true)}
+            className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF3B3B] to-[#E10600] hover:from-[#FF5555] hover:to-[#FF3B3B] text-white font-black text-sm flex items-center justify-center shadow-lg hover:shadow-red-600/50 transition-all transform hover:scale-110 active:scale-95 animate-pulse"
+            title="Emergency Services Helpline"
+          >
+            SOS
+          </button>
+        )}
+
         {/* Stop button */}
         <button
           onClick={stopEmergency}
@@ -468,6 +521,66 @@ export function EmergencyCPRFlow() {
           {isLastStep ? "RESTART CYCLE" : "NEXT STEP"}
         </button>
       </footer>
+
+      {/* SOS Popup Modal */}
+      {showSOSPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowSOSPopup(false)} />
+          <div
+            className="relative bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border-2 border-[#E10600] rounded-3xl p-8 max-w-sm w-full shadow-2xl animate-scale-in"
+            style={{ boxShadow: 'inset 0 0 50px rgba(225, 6, 0, 0.15), 0 0 60px rgba(225, 6, 0, 0.4)' }}
+          >
+            {/* Close button */}
+            <button
+              onClick={() => setShowSOSPopup(false)}
+              className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center text-[#AAAAAA] hover:text-[#F5F5F5] transition-colors"
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* SOS Icon */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#E10600] mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="white">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-black text-[#F5F5F5] mb-2">Emergency Helplines</h3>
+              <p className="text-sm text-[#AAAAAA]">India Helpline Numbers</p>
+            </div>
+
+            {/* Helpline Numbers */}
+            <div className="space-y-3">
+              <div className="bg-[#0D0D0D] rounded-lg p-4 border border-[#E10600] border-opacity-30">
+                <p className="text-xs text-[#AAAAAA] uppercase tracking-widest mb-1">Medical Helpline</p>
+                <p className="text-2xl font-black text-[#E10600]">108</p>
+              </div>
+              <div className="bg-[#0D0D0D] rounded-lg p-4 border border-[#E10600] border-opacity-30">
+                <p className="text-xs text-[#AAAAAA] uppercase tracking-widest mb-1">Ambulance Helpline</p>
+                <p className="text-2xl font-black text-[#E10600]">102</p>
+              </div>
+            </div>
+
+            {/* Instructions */}
+            <div className="mt-6 pt-6 border-t border-[#E10600] border-opacity-20">
+              <p className="text-sm text-[#AAAAAA] leading-relaxed">
+                Call these numbers immediately for professional emergency services. This app is a guidance tool only.
+              </p>
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={() => setShowSOSPopup(false)}
+              className="w-full mt-6 px-6 py-3 bg-[#E10600] hover:bg-[#FF3B3B] text-white font-bold rounded-xl transition-all duration-200 active:scale-95"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

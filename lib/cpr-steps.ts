@@ -25,7 +25,7 @@ export const cprSteps: CPRStep[] = [
     instruction:
       "Call 108 immediately. Put the phone on speaker. Ask someone nearby to get an AED.",
     narration:
-      "Step 2. Call 1 0 8 immediately. Put the phone on speaker mode. If someone is nearby, ask them to get an A E D.",
+      "Step 2. Call 1 0 8 immediately. Put the phone on speaker mode. If someone is nearby, ask them to get an A E D. On the bottom right side, you will find the S O S button for emergency assistance.",
     image: "/images/step-call-911.jpg",
     duration: 12,
     type: "timed",

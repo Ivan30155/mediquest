@@ -6,8 +6,8 @@ import './globals.css'
 const inter = Inter({ subsets: ["latin"], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'PulseGuide AI - Real-Time CPR Guidance',
-  description: 'AI-powered emergency response training system with real-time CPR rhythm guidance and emergency simulation',
+  title: 'MediQuest - Emergency Response & Medical Training',
+  description: 'Professional emergency response guidance with AI-guided CPR instructions and medical simulation training for healthcare professionals.',
   generator: 'v0.app',
   viewport: {
     width: 'device-width',
