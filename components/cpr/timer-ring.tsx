@@ -54,6 +54,7 @@ interface BPMIndicatorProps {
   isActive: boolean
   compressionCount: number
   targetCompressions: number
+  isPulsing?: boolean
 }
 
 export function BPMIndicator({
@@ -61,34 +62,14 @@ export function BPMIndicator({
   isActive,
   compressionCount,
   targetCompressions,
+  isPulsing = false,
 }: BPMIndicatorProps) {
-  const [beat, setBeat] = useState(false)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  useEffect(() => {
-    if (!isActive) {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-      return
-    }
-
-    const msPerBeat = 60000 / bpm
-
-    intervalRef.current = setInterval(() => {
-      setBeat(true)
-      setTimeout(() => setBeat(false), 150)
-    }, msPerBeat)
-
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [bpm, isActive])
-
   return (
     <div className="flex flex-col items-center gap-4">
-      {/* Pulsing circle */}
+      {/* Pulsing circle synchronized with metronome */}
       <div
-        className={`w-28 h-28 rounded-full border-4 flex items-center justify-center transition-transform duration-100 ${
-          beat
+        className={`w-28 h-28 rounded-full border-4 flex items-center justify-center transition-all duration-100 ${
+          isPulsing
             ? "scale-110 border-[#FF3B3B] bg-[#FF3B3B]/20"
             : "scale-100 border-[#E10600] bg-[#E10600]/10"
         }`}
@@ -113,7 +94,7 @@ export function BPMIndicator({
       {/* Progress bar */}
       <div className="w-full max-w-[200px] h-2 rounded-full bg-[#1A1A1A] overflow-hidden">
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#E10600] to-[#FF3B3B] transition-all duration-200"
+          className="h-full rounded-full bg-gradient-to-r from-[#E10600] to-[#FF3B3B] transition-all duration-100"
           style={{
             width: `${Math.min(
               (compressionCount / targetCompressions) * 100,

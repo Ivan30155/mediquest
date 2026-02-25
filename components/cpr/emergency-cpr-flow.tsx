@@ -7,8 +7,9 @@ import { cprSteps, type CPRStep } from "@/lib/cpr-steps"
 import { useSpeechNarration } from "@/hooks/use-speech-narration"
 import { TimerRing, BPMIndicator } from "@/components/cpr/timer-ring"
 
-const BPM = 110
+const BPM = 120
 const TARGET_COMPRESSIONS = 30
+const MS_PER_BEAT = 60000 / 120 // 500ms for 120 BPM
 
 export function EmergencyCPRFlow() {
   const router = useRouter()
@@ -19,9 +20,13 @@ export function EmergencyCPRFlow() {
   const [isRunning, setIsRunning] = useState(false)
   const [cycleCount, setCycleCount] = useState(1)
   const [showTransition, setShowTransition] = useState(false)
+  const [pulseAnimation, setPulseAnimation] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const compressionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const metronomeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const advanceStepRef = useRef<() => void>(() => {})
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const audioInitializedRef = useRef(false)
 
   const currentStep: CPRStep | null =
     currentStepIndex >= 0 && currentStepIndex < cprSteps.length
@@ -30,10 +35,63 @@ export function EmergencyCPRFlow() {
 
   const isLastStep = currentStepIndex === cprSteps.length - 1
 
+  // Initialize Web Audio API on user interaction
+  const initializeAudio = useCallback(() => {
+    if (audioInitializedRef.current) return
+    
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      audioContextRef.current = ctx
+      audioInitializedRef.current = true
+      
+      // Resume audio context if suspended (required on mobile)
+      if (ctx.state === 'suspended') {
+        ctx.resume()
+      }
+    } catch (err) {
+      console.error("[v0] Audio initialization error:", err)
+    }
+  }, [])
+
+  // Play beep sound using Web Audio API
+  const playBeep = useCallback(() => {
+    if (!audioContextRef.current) return
+
+    try {
+      const ctx = audioContextRef.current
+      
+      // Ensure audio context is running
+      if (ctx.state === 'suspended') {
+        ctx.resume()
+      }
+
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      // 880 Hz beep - medical alert frequency
+      osc.frequency.value = 880
+      osc.type = 'sine'
+
+      // Sharp attack, quick decay
+      gain.gain.setValueAtTime(0.3, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08)
+
+      osc.start(ctx.currentTime)
+      osc.stop(ctx.currentTime + 0.08)
+    } catch (err) {
+      console.error("[v0] Beep playback error:", err)
+    }
+  }, [])
+
   const advanceStep = useCallback(() => {
     stopSpeech()
     if (timerRef.current) clearInterval(timerRef.current)
     if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
+    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+    setPulseAnimation(false)
 
     setShowTransition(true)
     setTimeout(() => {
@@ -60,6 +118,7 @@ export function EmergencyCPRFlow() {
       stopSpeech()
       if (timerRef.current) clearInterval(timerRef.current)
       if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
+      if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
     }
   }, [stopSpeech])
 
@@ -91,21 +150,31 @@ export function EmergencyCPRFlow() {
       setCompressionCount(0)
       setTimeLeft(currentStep.duration)
 
-      const msPerBeat = 60000 / BPM
       if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
+      if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
 
+      // Start metronome: beep every 500ms (120 BPM)
+      metronomeIntervalRef.current = setInterval(() => {
+        playBeep()
+        setPulseAnimation(true)
+        setTimeout(() => setPulseAnimation(false), 150)
+      }, MS_PER_BEAT)
+
+      // Compression counter synchronized with metronome
       compressionTimerRef.current = setInterval(() => {
         setCompressionCount((prev) => {
           if (prev >= TARGET_COMPRESSIONS - 1) {
             if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
+            if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+            setPulseAnimation(false)
             setTimeout(() => advanceStepRef.current(), 500)
             return TARGET_COMPRESSIONS
           }
           return prev + 1
         })
-      }, msPerBeat)
+      }, MS_PER_BEAT)
 
-      // Also run the countdown
+      // Countdown timer
       if (timerRef.current) clearInterval(timerRef.current)
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
@@ -126,15 +195,19 @@ export function EmergencyCPRFlow() {
   }, [currentStepIndex, isRunning])
 
   const startEmergency = useCallback(() => {
+    // Initialize audio on user interaction (required for mobile)
+    initializeAudio()
     setCurrentStepIndex(0)
     setIsRunning(true)
     setCycleCount(1)
-  }, [])
+  }, [initializeAudio])
 
   const stopEmergency = useCallback(() => {
     stopSpeech()
     if (timerRef.current) clearInterval(timerRef.current)
     if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
+    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+    setPulseAnimation(false)
     setIsRunning(false)
     setCurrentStepIndex(-1)
     setTimeLeft(0)
@@ -291,6 +364,7 @@ export function EmergencyCPRFlow() {
               isActive={isRunning}
               compressionCount={compressionCount}
               targetCompressions={TARGET_COMPRESSIONS}
+              isPulsing={pulseAnimation}
             />
           </div>
         )}

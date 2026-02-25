@@ -21,7 +21,7 @@ export default function CPRPage() {
   const breathIntervalRef = useRef<NodeJS.Timeout | null>(null)
   const isRunningRef = useRef(false)
 
-  const COMPRESSION_INTERVAL = 545 // 110 BPM
+  const COMPRESSION_INTERVAL = 500 // 120 BPM (500ms per beat)
 
   // Initialize Web Audio API
   useEffect(() => {
@@ -211,7 +211,7 @@ export default function CPRPage() {
 
                 {/* BPM Info */}
                 <div className="flex items-center justify-center gap-3 text-[#AAAAAA]">
-                  <span className="text-2xl font-black text-[#E10600]">110</span>
+                  <span className="text-2xl font-black text-[#E10600]">120</span>
                   <span className="text-lg">BPM Target Rate</span>
                   <span className="text-2xl animate-heartbeat">♥</span>
                 </div>
@@ -298,7 +298,7 @@ export default function CPRPage() {
             <div className="bg-gradient-to-br from-[#1A1A1A] to-[#2A2A2A] border border-[#E10600] border-opacity-30 rounded-2xl px-8 py-6 shadow-lg" style={{ boxShadow: 'inset 0 0 30px rgba(225, 6, 0, 0.08), 0 0 30px rgba(225, 6, 0, 0.2)' }}>
               <div className="flex items-center justify-center gap-4">
                 <div className="text-center">
-                  <div className="text-5xl font-black text-[#FF3B3B] font-mono">110</div>
+                  <div className="text-5xl font-black text-[#FF3B3B] font-mono">120</div>
                   <div className="text-[#AAAAAA] text-sm font-bold mt-1">BPM</div>
                 </div>
                 <span className="text-4xl animate-heartbeat">♥</span>
@@ -309,7 +309,7 @@ export default function CPRPage() {
             <div className="text-center space-y-6 max-w-md">
               <h2 className="text-5xl md:text-6xl font-black text-[#F5F5F5] tracking-tight">Push Hard</h2>
               <div className="space-y-3 text-[#AAAAAA]">
-                <p className="text-3xl font-bold text-[#FF3B3B]">100–120 per minute</p>
+                <p className="text-3xl font-bold text-[#FF3B3B]">120 per minute</p>
                 <p className="text-xl font-semibold text-[#AAAAAA]">5–6 cm depth</p>
               </div>
             </div>
