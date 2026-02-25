@@ -95,7 +95,7 @@ export function EmergencyCPRFlow() {
     }
   }, [isPaused])
 
-  // Clear all active intervals
+  // Clear all active intervals - MUST be before advanceStepSequential
   const clearAllIntervals = useCallback(() => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
     if (compressionIntervalRef.current) clearInterval(compressionIntervalRef.current)
