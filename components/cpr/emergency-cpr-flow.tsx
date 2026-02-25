@@ -95,6 +95,13 @@ export function EmergencyCPRFlow() {
     }
   }, [isPaused])
 
+  // Clear all active intervals - defined before advanceStepSequential
+  const clearAllIntervals = useCallback(() => {
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+    if (compressionIntervalRef.current) clearInterval(compressionIntervalRef.current)
+    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+  }, [])
+
   // Advance to next step with strict sequential enforcement
   const advanceStepSequential = useCallback(() => {
     if (isAdvancingRef.current) return // Prevent double execution
@@ -128,13 +135,6 @@ export function EmergencyCPRFlow() {
       setShowTransition(false)
     }, 400)
   }, [stopSpeech, clearAllIntervals])
-
-  // Clear all active intervals
-  const clearAllIntervals = useCallback(() => {
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
-    if (compressionIntervalRef.current) clearInterval(compressionIntervalRef.current)
-    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
-  }, [])
 
   // Pause: Freeze all timers and audio
   const pauseCPR = useCallback(() => {
