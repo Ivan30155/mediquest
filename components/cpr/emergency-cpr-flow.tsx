@@ -96,14 +96,14 @@ export function EmergencyCPRFlow() {
     }
   }, [isPaused])
 
-  // Clear all active intervals - defined before advanceStepSequential
+  // Clear all active intervals
   const clearAllIntervals = useCallback(() => {
     if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
     if (compressionIntervalRef.current) clearInterval(compressionIntervalRef.current)
     if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
   }, [])
 
-  // Advance to next step with strict sequential enforcement - STOPS at step 6
+  // Advance to next step with strict sequential enforcement
   const advanceStepSequential = useCallback(() => {
     if (isAdvancingRef.current) return
     isAdvancingRef.current = true
@@ -116,14 +116,9 @@ export function EmergencyCPRFlow() {
     setShowTransition(true)
     setTimeout(() => {
       setCurrentStepIndex((prevIndex) => {
-        // Strict sequential: only increment by 1
         let nextIndex = prevIndex + 1
-
-        // STOP at step 6 (index 5) - don't cycle back
         if (nextIndex >= cprSteps.length) {
-          // Don't cycle - just stay at the last step (6)
           nextIndex = cprSteps.length - 1
-          // End the emergency protocol
           setTimeout(() => {
             setIsRunning(false)
             setShowTransition(false)
@@ -132,11 +127,8 @@ export function EmergencyCPRFlow() {
           stepNarrationStartedRef.current = false
           return nextIndex
         }
-
-        // Enforce bounds
         if (nextIndex < 0) nextIndex = 0
         if (nextIndex >= cprSteps.length) nextIndex = cprSteps.length - 1
-
         isAdvancingRef.current = false
         stepNarrationStartedRef.current = false
         return nextIndex
