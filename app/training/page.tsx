@@ -1,7 +1,7 @@
 'use client'
 
-import DentalRescueGame from '@/components/training/dental-rescue-game'
+import DentalEmergencySimulator from '@/components/training/dental-emergency-simulator'
 
 export default function TrainingPage() {
-  return <DentalRescueGame />
+  return <DentalEmergencySimulator />
 }

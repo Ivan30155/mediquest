@@ -95,8 +95,11 @@ export function EmergencyCPRFlow() {
     }
   }, [isPaused])
 
-  // Advance to next step - clean sequential navigation
-  const advanceStep = useCallback(() => {
+  // Advance to next step with strict sequential enforcement
+  const advanceStepSequential = useCallback(() => {
+    if (isAdvancingRef.current) return // Prevent double execution
+    isAdvancingRef.current = true
+
     stopSpeech()
     clearAllIntervals()
     setPulseAnimation(false)
@@ -105,19 +108,26 @@ export function EmergencyCPRFlow() {
     setShowTransition(true)
     setTimeout(() => {
       setCurrentStepIndex((prevIndex) => {
-        const nextIndex = prevIndex + 1
+        // Strict sequential: only increment by 1
+        let nextIndex = prevIndex + 1
 
-        // Cycle back to compressions (step 4) after rescue breaths (step 5)
+        // Cycle back to compressions (step 4) after breathing (step 5)
         if (nextIndex >= cprSteps.length) {
           setCycleCount((c) => c + 1)
-          return 4 // Compressions step index
+          nextIndex = 4 // Index of compressions step
         }
 
+        // Enforce bounds
+        if (nextIndex < 0) nextIndex = 0
+        if (nextIndex >= cprSteps.length) nextIndex = cprSteps.length - 1
+
+        isAdvancingRef.current = false
+        stepNarrationStartedRef.current = false
         return nextIndex
       })
       setShowTransition(false)
     }, 400)
-  }, [stopSpeech])
+  }, [stopSpeech, clearAllIntervals])
 
   // Clear all active intervals
   const clearAllIntervals = useCallback(() => {
@@ -167,25 +177,10 @@ export function EmergencyCPRFlow() {
     }
     stepNarrationStartedRef.current = true
 
-    // Define the auto-advance callback (only for non-compression steps)
+    // Define the auto-advance callback (only for timed steps)
     const onNarrationComplete = () => {
-      if (currentStep.type === "timed" && !isAdvancingRef.current) {
-        isAdvancingRef.current = true
-        clearAllIntervals()
-        setShowTransition(true)
-        setTimeout(() => {
-          setCurrentStepIndex((prevIndex) => {
-            let nextIndex = prevIndex + 1
-            if (nextIndex >= cprSteps.length) {
-              setCycleCount((c) => c + 1)
-              nextIndex = 4
-            }
-            isAdvancingRef.current = false
-            stepNarrationStartedRef.current = false
-            return nextIndex
-          })
-          setShowTransition(false)
-        }, 400)
+      if (currentStep.type === "timed") {
+        advanceStepSequential()
       }
     }
 
@@ -218,24 +213,7 @@ export function EmergencyCPRFlow() {
           const newCount = prev + 1
           if (newCount >= TARGET_COMPRESSIONS) {
             // Auto-advance after compressions complete
-            if (!isAdvancingRef.current) {
-              isAdvancingRef.current = true
-              clearAllIntervals()
-              setShowTransition(true)
-              setTimeout(() => {
-                setCurrentStepIndex((prevIndex) => {
-                  let nextIndex = prevIndex + 1
-                  if (nextIndex >= cprSteps.length) {
-                    setCycleCount((c) => c + 1)
-                    nextIndex = 4
-                  }
-                  isAdvancingRef.current = false
-                  stepNarrationStartedRef.current = false
-                  return nextIndex
-                })
-                setShowTransition(false)
-              }, 400)
-            }
+            advanceStepSequential()
             return TARGET_COMPRESSIONS
           }
           return newCount
@@ -450,18 +428,7 @@ export function EmergencyCPRFlow() {
       </div>
 
       {/* Bottom actions */}
-      <footer className="flex items-center gap-3 px-4 py-4 bg-[#0D0D0D] border-t border-[#E10600]/20 relative">
-        {/* SOS Button - visible only in Step 2 */}
-        {currentStep?.id === 2 && (
-          <button
-            onClick={() => setShowSOSPopup(true)}
-            className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF3B3B] to-[#E10600] hover:from-[#FF5555] hover:to-[#FF3B3B] text-white font-black text-sm flex items-center justify-center shadow-lg hover:shadow-red-600/50 transition-all transform hover:scale-110 active:scale-95 animate-pulse"
-            title="Emergency Services Helpline"
-          >
-            SOS
-          </button>
-        )}
-
+      <footer className={`flex items-center gap-3 px-4 py-4 bg-[#0D0D0D] border-t border-[#E10600]/20 ${currentStep?.id === 2 ? 'pr-20' : ''}`}>
         {/* Stop button */}
         <button
           onClick={stopEmergency}
@@ -514,12 +481,23 @@ export function EmergencyCPRFlow() {
 
         {/* Next / Skip button */}
         <button
-          onClick={advanceStep}
+          onClick={advanceStepSequential}
           className="flex-1 h-14 bg-[#E10600] hover:bg-[#FF3B3B] text-[#F5F5F5] font-bold text-lg rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50"
           disabled={isPaused}
         >
           {isLastStep ? "RESTART CYCLE" : "NEXT STEP"}
         </button>
+
+        {/* SOS Button - visible only in Step 2, positioned on the right */}
+        {currentStep?.id === 2 && (
+          <button
+            onClick={() => setShowSOSPopup(true)}
+            className="absolute bottom-4 right-4 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF3B3B] to-[#E10600] hover:from-[#FF5555] hover:to-[#FF3B3B] text-white font-black text-xs flex items-center justify-center shadow-lg hover:shadow-red-600/50 transition-all transform hover:scale-110 active:scale-95 animate-pulse z-30"
+            title="Emergency Services Helpline"
+          >
+            <span className="text-center leading-tight">SOS</span>
+          </button>
+        )}
       </footer>
 
       {/* SOS Popup Modal */}
