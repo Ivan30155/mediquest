@@ -68,7 +68,8 @@ export default function DentalEmergencySimulator() {
     setGameState('case-select')
     setSelectedCase(null)
     setCurrentLevelIndex(0)
-    setTotalScore(0)
+    setScore(0)
+    setAnsweredLevels(0)
     setSelectedAnswer(null)
     setShowExplanation(false)
   }
@@ -133,9 +134,8 @@ export default function DentalEmergencySimulator() {
 
   if (gameState === 'case-complete' && selectedCase) {
     const totalLevels = selectedCase.levels.length
-    const percentage = totalLevels > 0 ? Math.round((score / totalLevels) * 100) : 0
     const rating =
-      percentage >= 90 ? 'Excellent' : percentage >= 75 ? 'Good' : percentage >= 60 ? 'Fair' : 'Needs Improvement'
+      score >= totalLevels * 0.9 ? 'Excellent' : score >= totalLevels * 0.75 ? 'Good' : score >= totalLevels * 0.6 ? 'Fair' : 'Needs Improvement'
 
     return (
       <main className="min-h-screen bg-gradient-to-br from-[#0D0D0D] via-[#1A0000] to-[#0D0D0D] flex items-center justify-center p-4">
@@ -151,7 +151,6 @@ export default function DentalEmergencySimulator() {
                 <span className="text-6xl font-black text-[#E10600]">{score}</span>
                 <span className="text-2xl text-[#AAAAAA]">/ {totalLevels}</span>
               </div>
-              <p className="text-lg text-[#AAAAAA] mt-4">{percentage}% Accuracy</p>
             </div>
 
             <div className="bg-[#0D0D0D] rounded-xl p-8 mb-8">

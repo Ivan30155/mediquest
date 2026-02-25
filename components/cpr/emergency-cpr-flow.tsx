@@ -112,6 +112,7 @@ export function EmergencyCPRFlow() {
     clearAllIntervals()
     setPulseAnimation(false)
     setIsPaused(false)
+    stepNarrationStartedRef.current = false
 
     setShowTransition(true)
     setTimeout(() => {
@@ -122,15 +123,12 @@ export function EmergencyCPRFlow() {
           setTimeout(() => {
             setIsRunning(false)
             setShowTransition(false)
+            isAdvancingRef.current = false
           }, 1000)
-          isAdvancingRef.current = false
-          stepNarrationStartedRef.current = false
           return nextIndex
         }
         if (nextIndex < 0) nextIndex = 0
-        if (nextIndex >= cprSteps.length) nextIndex = cprSteps.length - 1
         isAdvancingRef.current = false
-        stepNarrationStartedRef.current = false
         return nextIndex
       })
       setShowTransition(false)
@@ -234,13 +232,17 @@ export function EmergencyCPRFlow() {
 
   const startEmergency = useCallback(() => {
     initializeAudio()
+    stopSpeech()
+    clearAllIntervals()
     setCurrentStepIndex(0)
     setIsRunning(true)
     setIsPaused(false)
     setCycleCount(1)
     setCompressionCount(0)
     setTimeRemaining(0)
-  }, [initializeAudio])
+    stepNarrationStartedRef.current = false
+    isAdvancingRef.current = false
+  }, [initializeAudio, stopSpeech, clearAllIntervals])
 
   const stopEmergency = useCallback(() => {
     stopSpeech()
@@ -276,6 +278,7 @@ export function EmergencyCPRFlow() {
     stepNarrationStartedRef.current = false
     isAdvancingRef.current = false
     setCycleCount(1)
+    setIsRunning(true)
   }, [stopSpeech, clearAllIntervals])
 
   // Restart compression cycle - goes directly to Step 5 (Compressions with metronome)
@@ -291,6 +294,8 @@ export function EmergencyCPRFlow() {
     stepNarrationStartedRef.current = false
     isAdvancingRef.current = false
     setCycleCount((c) => c + 1)
+    // Immediately trigger narration start by setting running state
+    setIsRunning(true)
   }, [stopSpeech, clearAllIntervals])
 
   // HOME SCREEN
