@@ -25,438 +25,208 @@ export interface SimulationCase {
   levels: SimulationLevel[]
 }
 
+// CASE 1: THE SILENT ALLERGEN (8 levels)
 export const SILENT_ALLERGEN: SimulationCase = {
   id: 'silent-allergen',
   title: 'The Silent Allergen',
-  description: 'Advanced Mode - Patient experiencing anaphylaxis during routine procedure',
+  description: 'Advanced Mode - 27-year-old female presenting for surgical extraction of impacted 48',
   mode: 'Advanced Mode',
   totalLevels: 8,
   levels: [
     {
       id: 1,
-      scenario:
-        '25-year-old female patient under local anesthesia for root canal treatment. 5 minutes into procedure, you notice patient becoming restless and flushed.',
-      question: 'What is your first clinical observation concern?',
+      scenario: '11:30 AM – Minor Oral Surgery Room. Patient reports mild asthma and seasonal allergies. 3 minutes post-injection: Patient says "My lips feel swollen..." You observe erythematous rash on neck, lip edema, mild cough.',
+      question: 'Your FIRST action?',
       options: [
-        {
-          id: 'a',
-          text: 'Anxiety reaction to procedure',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'Early signs of anaphylaxis - urticaria and flushing',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Vasovagal syncope',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Hypertension crisis',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Continue extraction', isCorrect: false },
+        { id: 'b', text: 'Observe', isCorrect: false },
+        { id: 'c', text: 'Stop procedure immediately', isCorrect: true },
+        { id: 'd', text: 'Give oral antihistamine', isCorrect: false },
       ],
-      explanation:
-        'Flushing and restlessness are early signs of anaphylaxis. The urticaria (skin reaction) combined with behavioral changes indicates immunological response rather than psychological anxiety.',
-      score: 10,
-      medicalContext: 'Anaphylaxis - Immediate allergic reaction',
+      explanation: 'STOP the procedure immediately. Early warning signs of anaphylaxis require immediate cessation of treatment. This is the critical first step.',
+      score: 13,
+      medicalContext: 'Anaphylaxis Recognition - Early Warning Signs',
     },
     {
       id: 2,
-      scenario:
-        'Patient now has audible wheeze and difficulty breathing. SpO2 drops to 92%. Patient is fully conscious but distressed.',
-      question: 'What is the immediate priority action?',
+      scenario: '2 minutes later: Hoarse voice, Stridor beginning, BP 88/60 (down from 118/76), Pulse 124 (up from 82), Patient anxious.',
+      question: 'Most likely diagnosis?',
       options: [
-        {
-          id: 'a',
-          text: 'Continue treatment and monitor closely',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'Administer epinephrine 0.3-0.5mg IM immediately',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Give antihistamines and observe',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Call for ambulance and wait',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Vasovagal syncope', isCorrect: false },
+        { id: 'b', text: 'Panic attack', isCorrect: false },
+        { id: 'c', text: 'Anaphylaxis', isCorrect: true },
+        { id: 'd', text: 'LA toxicity', isCorrect: false },
       ],
-      explanation:
-        'Respiratory symptoms with hypoxia indicate moderate-to-severe anaphylaxis. IM epinephrine is the first-line treatment - IM route ensures systemic absorption even if vascular collapse occurs.',
-      score: 15,
-      medicalContext: 'Anaphylaxis Management - First-line therapy',
+      explanation: 'ANAPHYLAXIS - Hypotension, tachycardia, airway involvement (stridor), and urticaria confirm systemic allergic reaction. This is life-threatening.',
+      score: 12,
+      medicalContext: 'Differential Diagnosis - Systemic Allergic Reaction',
     },
     {
       id: 3,
-      scenario:
-        'After epinephrine injection, patient breathing improves slightly but blood pressure drops to 80/50mmHg. Patient remains conscious.',
-      question: 'What is the next immediate intervention?',
+      scenario: 'Patient now showing airway compromise and cardiovascular collapse signs.',
+      question: 'What is the immediate treatment?',
       options: [
-        {
-          id: 'a',
-          text: 'Reassure patient and wait for recovery',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'Place patient supine with legs elevated; establish IV access; consider second epinephrine dose',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Give oxygen only',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Transport to hospital immediately',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'IV hydrocortisone', isCorrect: false },
+        { id: 'b', text: 'IM epinephrine', isCorrect: true },
+        { id: 'c', text: 'IV antihistamine', isCorrect: false },
+        { id: 'd', text: 'Oxygen only', isCorrect: false },
       ],
-      explanation:
-        'Hypotension with anaphylaxis requires aggressive fluid resuscitation and positioning. Supine with elevated legs maximizes cerebral perfusion. IV access enables rapid medication administration. A second epinephrine dose may be needed if no response in 5-15 minutes.',
-      score: 15,
-      medicalContext: 'Shock management in Anaphylaxis',
+      explanation: 'IM EPINEPHRINE is the definitive first-line treatment for anaphylaxis. Steroids and antihistamines are secondary. Oxygen alone is insufficient.',
+      score: 13,
+      medicalContext: 'First-Line Drug Selection - Epinephrine Priority',
     },
     {
       id: 4,
-      scenario:
-        'You have established IV access and started fluid resuscitation. Patient vitals stabilizing: BP 95/60, HR 110, SpO2 94%. Breathing easier but still wheezing.',
-      question: 'Which additional medication should be administered now?',
+      scenario: 'You open the emergency kit. Epinephrine available: 1:1000 concentration.',
+      question: 'What is the correct adult dose?',
       options: [
-        {
-          id: 'a',
-          text: 'Propranolol beta blocker',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'H1 and H2 antihistamines IV, Corticosteroids IV',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Only H1 antihistamines',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'No additional medications needed',
-          isCorrect: false,
-        },
+        { id: 'a', text: '1 mg IM', isCorrect: false },
+        { id: 'b', text: '0.5 mg IM', isCorrect: true },
+        { id: 'c', text: '0.05 mg IM', isCorrect: false },
+        { id: 'd', text: '5 mg IM', isCorrect: false },
       ],
-      explanation:
-        'Secondary treatment in anaphylaxis includes H1-antihistamines (blocks histamine receptors) and H2-antihistamines (blocks gastric acid) plus corticosteroids to prevent biphasic reactions and reduce inflammation. Beta-blockers are contraindicated in anaphylaxis.',
-      score: 15,
-      medicalContext: 'Secondary Anaphylaxis Treatment',
+      explanation: 'CORRECT DOSE: 0.5 mg IM (0.5 mL of 1:1000 solution). This is the standard adult anaphylaxis dose. Incorrect dosing is fatal.',
+      score: 13,
+      medicalContext: 'Dose Calculation - Critical Competency',
     },
     {
       id: 5,
-      scenario:
-        'Patient stabilizing well. HR 95, BP 105/70, SpO2 96%, breathing normal. No active wheeze. Patient reports throat tightness has resolved.',
-      question: 'What is critical about discharge planning?',
+      scenario: 'You have the epinephrine syringe loaded with correct dose.',
+      question: 'Where do you inject?',
       options: [
-        {
-          id: 'a',
-          text: 'Patient can go home immediately',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'Admit for observation - risk of biphasic anaphylaxis. Prescribe epinephrine auto-injector. Refer to allergy specialist.',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Just prescribe antihistamines',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Discharge with steroid prescription only',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Deltoid', isCorrect: false },
+        { id: 'b', text: 'Subcutaneous forearm', isCorrect: false },
+        { id: 'c', text: 'Outer mid-thigh (vastus lateralis)', isCorrect: true },
+        { id: 'd', text: 'Intravenous line', isCorrect: false },
       ],
-      explanation:
-        'Biphasic anaphylaxis can occur hours later in 1-3% of cases. Hospital observation is essential. Epinephrine auto-injector prescription and allergy testing are mandatory to identify the causative agent.',
-      score: 15,
-      medicalContext: 'Post-Anaphylaxis Management',
+      explanation: 'OUTER MID-THIGH (Vastus Lateralis) - IM injection in anterolateral thigh. Provides fastest absorption and most reliable delivery in emergency.',
+      score: 12,
+      medicalContext: 'Injection Site Selection - Optimal Delivery',
     },
     {
       id: 6,
-      scenario:
-        'Patient allergy testing identifies latex sensitivity. Dental procedure can resume only after addressing this.',
-      question: 'Which protective measures must be implemented?',
+      scenario: 'You are ready to administer epinephrine IM.',
+      question: 'Which technique is correct?',
       options: [
-        {
-          id: 'a',
-          text: 'Use latex-free gloves and equipment; premedicate with antihistamines',
-          isCorrect: true,
-        },
-        {
-          id: 'b',
-          text: 'Just use thinner latex gloves',
-          isCorrect: false,
-        },
-        {
-          id: 'c',
-          text: 'Proceed normally - one reaction is enough',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Refer to another dentist',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Subcutaneous shallow injection', isCorrect: false },
+        { id: 'b', text: 'Deep intramuscular at 90° angle', isCorrect: true },
+        { id: 'c', text: 'Intradermal injection', isCorrect: false },
+        { id: 'd', text: 'Slow IV push', isCorrect: false },
       ],
-      explanation:
-        'Complete elimination of latex exposure is essential for latex-allergic patients. All equipment, gloves, dam, and instruments must be latex-free. Premedication with H1-antihistamines may reduce minor reactions but does not prevent true anaphylaxis.',
-      score: 10,
-      medicalContext: 'Latex-Free Protocol Implementation',
+      explanation: 'DEEP IM AT 90° - Use 23-25 gauge needle, insert perpendicular, into anterolateral thigh muscle. May repeat every 5-15 minutes if needed.',
+      score: 12,
+      medicalContext: 'Injection Technique - Safety & Efficacy',
     },
     {
       id: 7,
-      scenario:
-        'During rescheduled procedure with latex-free setup, patient remains stable. Procedure completed successfully. No adverse reactions observed.',
-      question: 'What documentation is legally and clinically necessary?',
+      scenario: 'Epinephrine given. Patient stabilizing. Multiple tasks need priority.',
+      question: 'Arrange correct sequence: Give epinephrine, Call EMS, Lay patient supine, Provide high-flow oxygen',
       options: [
-        {
-          id: 'a',
-          text: 'Brief note: "No issues today"',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'Detailed documentation of previous anaphylaxis event, treatment given, allergen identified, preventive measures, and consent for future procedures',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Standard treatment notes only',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'No additional documentation needed',
-          isCorrect: false,
-        },
+        { id: 'a', text: '1 → 3 → 4 → 2', isCorrect: true },
+        { id: 'b', text: '3 → 1 → 2 → 4', isCorrect: false },
+        { id: 'c', text: '2 → 1 → 3 → 4', isCorrect: false },
+        { id: 'd', text: '1 → 2 → 3 → 4', isCorrect: false },
       ],
-      explanation:
-        'Comprehensive medical-legal documentation is critical. Record includes: incident timeline, symptoms observed, medications given with doses/times, vitals, outcomes, allergen identified, and modifications made. This protects both patient safety and practice liability.',
-      score: 10,
-      medicalContext: 'Medical Record Documentation',
+      explanation: 'CORRECT SEQUENCE: Epinephrine FIRST (life-saving), Position supine, Oxygen, Call EMS. Epinephrine must be given immediately.',
+      score: 13,
+      medicalContext: 'Emergency Protocol Sequence - Priority Management',
     },
     {
       id: 8,
-      scenario:
-        'Patient asks about preventing future allergic reactions during dental visits. You create a personalized management plan.',
-      question: 'What should be included in the allergy action plan?',
+      scenario: 'Post-recovery investigation: Patient reported "No known drug allergies" but reaction occurred after lignocaine injection.',
+      question: 'True allergy to amide local anesthetics like lignocaine is:',
       options: [
-        {
-          id: 'a',
-          text: 'Just avoid latex',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'Identification of allergen, latex-free protocol, medication list, emergency procedures, allergy documentation on chart, patient carries epinephrine auto-injector, alert in EMR system',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Prescribe antihistamines before all visits',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'No specific plan needed',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Very common', isCorrect: false },
+        { id: 'b', text: 'Rare', isCorrect: true },
+        { id: 'c', text: 'Always fatal', isCorrect: false },
+        { id: 'd', text: 'Same as adrenaline reaction', isCorrect: false },
       ],
-      explanation:
-        'Comprehensive allergy action plans prevent future incidents. EMR alerts ensure all staff are aware. Patient education about auto-injector use is lifesaving. Clear protocols for latex-free treatment reduce stress and improve patient compliance.',
-      score: 15,
-      medicalContext: 'Preventive Allergy Management Plan',
+      explanation: 'RARE - True IgE-mediated allergy to amides is extremely rare. Most likely: allergy to preservative (methylparaben) or sulfite in solution.',
+      score: 13,
+      medicalContext: 'Root Cause Analysis - Preservative Allergy Recognition',
     },
   ],
 }
 
+// CASE 2: THE MORNING COLLAPSE (5 levels)
 export const MORNING_COLLAPSE: SimulationCase = {
   id: 'morning-collapse',
   title: 'The Morning Collapse',
-  description: 'Diagnostic Precision Mode - Patient collapses during morning appointment',
+  description: 'Diagnostic Precision Mode - 18-year-old male first invasive procedure',
   mode: 'Diagnostic Precision Mode',
   totalLevels: 5,
   levels: [
     {
       id: 1,
-      scenario:
-        '42-year-old male patient collapses in waiting room at 9:30 AM. Assistant reports patient was standing, suddenly lost consciousness. No seizure activity observed. Patient lying motionless.',
-      question: 'What are the differential diagnoses to consider immediately?',
+      scenario: '9:00 AM – General Dentistry Operatory. 18-year-old male, no systemic disease, no allergies, visibly anxious. Local anesthesia administered. While waiting: Patient says "I feel lightheaded..." You observe pale face, sweating, Pulse 52/min (bradycardia).',
+      question: 'Most likely diagnosis?',
       options: [
-        {
-          id: 'a',
-          text: 'Vasovagal syncope or cardiac arrhythmia',
-          isCorrect: true,
-        },
-        {
-          id: 'b',
-          text: 'Only hypoglycemia',
-          isCorrect: false,
-        },
-        {
-          id: 'c',
-          text: 'Only seizure disorder',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Sleep deprivation',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Anaphylaxis', isCorrect: false },
+        { id: 'b', text: 'Vasovagal syncope', isCorrect: true },
+        { id: 'c', text: 'Hypoglycemia', isCorrect: false },
+        { id: 'd', text: 'LA toxicity', isCorrect: false },
       ],
-      explanation:
-        'Sudden loss of consciousness in standing position suggests cardiac or vasovagal etiology. Absence of seizure activity makes seizure less likely. Hypoglycemia and sleep deprivation cause altered consciousness, not sudden collapse. Early assessment of cardiac rhythm and responsiveness is critical.',
-      score: 10,
-      medicalContext: 'Syncope Differential Diagnosis',
+      explanation: 'VASOVAGAL SYNCOPE - Classic triad: anxiety, bradycardia, and pallor. Distinct from anaphylaxis which shows tachycardia and rash.',
+      score: 20,
+      medicalContext: 'Differential Diagnosis - Syncope Recognition',
     },
     {
       id: 2,
-      scenario:
-        'Patient is responsive to verbal stimuli. You check: Pulse is weak and thready at 48 bpm. Blood pressure 85/55. Respiratory rate 10/min and shallow. Patient breathing but not fully alert.',
-      question: 'What critical action must you take first?',
+      scenario: 'Confirming differential: You note pale skin, sweating, and notably SLOW pulse (52/min). No rash visible. No airway swelling.',
+      question: 'Which feature supports syncope over anaphylaxis?',
       options: [
-        {
-          id: 'a',
-          text: 'Position supine with legs elevated; call EMS; obtain AED; establish airway monitoring',
-          isCorrect: true,
-        },
-        {
-          id: 'b',
-          text: 'Give coffee to wake patient up',
-          isCorrect: false,
-        },
-        {
-          id: 'c',
-          text: 'Move patient to treatment room and wait',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Check blood glucose only',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Rash', isCorrect: false },
+        { id: 'b', text: 'Tachycardia', isCorrect: false },
+        { id: 'c', text: 'Bradycardia', isCorrect: true },
+        { id: 'd', text: 'Lip swelling', isCorrect: false },
       ],
-      explanation:
-        'Bradycardia, hypotension, and shallow respiration suggest cardiac compromise or significant metabolic issue. Immediate positioning (supine, legs elevated) improves cerebral perfusion. EMS activation ensures definitive care. AED readiness is critical if arrhythmia is present.',
-      score: 15,
-      medicalContext: 'Cardiac Emergency Response',
+      explanation: 'BRADYCARDIA is the key differentiator. Syncope shows slow pulse via parasympathetic activation. Anaphylaxis shows rapid pulse from catecholamine release.',
+      score: 18,
+      medicalContext: 'Clinical Differentiation - Heart Rate Significance',
     },
     {
       id: 3,
-      scenario:
-        'EMS called. While waiting, you establish basic vitals. Patient becomes more alert. You find his glucose is 45 mg/dL (severely hypoglycemic). Patient is confused, sweating, trembling.',
-      question: 'What is the immediate treatment for hypoglycemia at this severity?',
+      scenario: 'Patient loses consciousness during waiting period. Vitals: BP dropping, weak pulse, slow respirations.',
+      question: 'What do you do FIRST?',
       options: [
-        {
-          id: 'a',
-          text: 'Give oral glucose tablets',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'IV dextrose 50% or IM glucagon if IV not available; monitor closely',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Just reassure and wait',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Give insulin',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Inject epinephrine', isCorrect: false },
+        { id: 'b', text: 'Sit upright', isCorrect: false },
+        { id: 'c', text: 'Supine position with legs elevated', isCorrect: true },
+        { id: 'd', text: 'Begin CPR', isCorrect: false },
       ],
-      explanation:
-        'Severe hypoglycemia (45 mg/dL) with altered consciousness requires rapid glucose delivery. Oral route is ineffective when patient cannot swallow safely. IV dextrose 50% is gold standard. IM glucagon is alternative if IV access unavailable. Reassurance alone risks seizures or permanent brain damage.',
-      score: 15,
-      medicalContext: 'Severe Hypoglycemia Management',
+      explanation: 'SUPINE + LEGS ELEVATED - Gravity assists return of blood to brain and heart. This simple positional maneuver is the primary treatment for syncope.',
+      score: 20,
+      medicalContext: 'Management - Gravitational Positioning',
     },
     {
       id: 4,
-      scenario:
-        'After IV dextrose administration, patient glucose rises to 120 mg/dL. Vitals improve: HR 72, BP 115/70, RR 16, O2 sat 98%. Patient is fully alert and oriented. He reports being diabetic but forgot breakfast before appointment.',
-      question: 'What is the underlying cause and prevention strategy?',
+      scenario: 'Patient now in recovery phase. Select ALL correct management actions.',
+      question: 'Select ALL correct actions for syncope management:',
       options: [
-        {
-          id: 'a',
-          text: 'Type 1 or Type 2 diabetes with inadequate carbohydrate intake; patient education on pre-appointment protocol',
-          isCorrect: true,
-        },
-        {
-          id: 'b',
-          text: 'Patient is deliberately being difficult',
-          isCorrect: false,
-        },
-        {
-          id: 'c',
-          text: 'No prevention possible',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Blame the patient for not managing diabetes',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Maintain airway', isCorrect: true },
+        { id: 'b', text: 'Loosen tight clothing', isCorrect: true },
+        { id: 'c', text: 'Provide oxygen', isCorrect: true },
+        { id: 'd', text: 'Give IM epinephrine', isCorrect: false },
       ],
-      explanation:
-        'Diabetic patients require stable blood glucose for dental procedures. Skipping meals before appointments is common but preventable. Patient education, rescheduling flexibility, and keeping quick-acting carbohydrates on hand reduce incidents. Early morning appointments without breakfast are high-risk.',
-      score: 15,
-      medicalContext: 'Diabetes and Dental Care Planning',
+      explanation: 'A, B, C are CORRECT. Airway maintenance, remove restrictive clothing, oxygen support are all supportive. Epinephrine is contraindicated in syncope.',
+      score: 18,
+      medicalContext: 'Supportive Management - Multi-Modal Approach',
     },
     {
       id: 5,
-      scenario:
-        'Patient recovers fully and wants to continue with scheduled treatment. He has eaten and stabilized. Family history reveals father had cardiac issues. Medical review shows no current cardiac contraindications for dental work.',
-      question: 'What is your clinical decision for proceeding?',
+      scenario: 'After recovery, patient states: "I rushed here... didn\'t eat anything." You review: no breakfast, anxiety about procedure, no sleep issues.',
+      question: 'Most likely trigger for syncope episode?',
       options: [
-        {
-          id: 'a',
-          text: 'Proceed immediately - no concerns',
-          isCorrect: false,
-        },
-        {
-          id: 'b',
-          text: 'Reschedule; contact his physician for cardiac clearance; establish diabetes management protocol; plan shorter, less stressful appointments',
-          isCorrect: true,
-        },
-        {
-          id: 'c',
-          text: 'Refer to hospital',
-          isCorrect: false,
-        },
-        {
-          id: 'd',
-          text: 'Refuse to treat patient',
-          isCorrect: false,
-        },
+        { id: 'a', text: 'Drug allergy', isCorrect: false },
+        { id: 'b', text: 'Anxiety + empty stomach', isCorrect: true },
+        { id: 'c', text: 'Cardiac arrhythmia', isCorrect: false },
+        { id: 'd', text: 'Toxic reaction', isCorrect: false },
       ],
-      explanation:
-        'Although immediate risk has resolved, this event indicates need for interdisciplinary coordination. Physician clearance for cardiac status is prudent given family history. Shorter appointments reduce stress-induced glucose fluctuations. Diabetes management protocol ensures adequate pre-appointment nutrition and medication timing. This approach balances patient safety with continued care.',
-      score: 15,
-      medicalContext: 'Risk Stratification and Care Planning',
+      explanation: 'ANXIETY + FASTING - Combined psychological stress and hypoglycemia trigger vasovagal response in young, anxious patients. Prevention: eat before appointment.',
+      score: 11,
+      medicalContext: 'Root Cause - Risk Factor Assessment',
     },
   ],
 }
+
+export const ALL_CASES = [SILENT_ALLERGEN, MORNING_COLLAPSE]

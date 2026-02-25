@@ -242,41 +242,112 @@ export default function DentalEmergencySimulator() {
             {/* Medical Animation Content */}
             <div className="relative z-10 text-center w-full">
               {selectedCase.id === 'silent-allergen' ? (
-                <div className="space-y-4">
-                  <div className="inline-block">
-                    <div className="text-6xl animate-pulse">⚠️</div>
+                <div className="space-y-6">
+                  {/* Anaphylaxis Visualization */}
+                  <div className="inline-flex flex-col items-center">
+                    {/* Head with swelling animation */}
+                    <svg width="120" height="120" viewBox="0 0 120 120" className="mb-4">
+                      {/* Face outline */}
+                      <circle cx="60" cy="50" r="30" fill="none" stroke="#FF3B3B" strokeWidth="2" />
+                      {/* Eyes */}
+                      <circle cx="50" cy="45" r="3" fill="#FF3B3B" />
+                      <circle cx="70" cy="45" r="3" fill="#FF3B3B" />
+                      {/* Mouth */}
+                      <path d="M 55 55 Q 60 58 65 55" fill="none" stroke="#FF3B3B" strokeWidth="2" />
+                      {/* Swelling animation circles */}
+                      {[0, 1, 2].map((i) => (
+                        <circle
+                          key={i}
+                          cx="60"
+                          cy="50"
+                          r={40 + i * 5}
+                          fill="none"
+                          stroke="#FF3B3B"
+                          strokeWidth="1"
+                          opacity={0.3 - i * 0.1}
+                          style={{
+                            animation: `pulse-glow 2s ease-in-out ${i * 0.3}s infinite`,
+                          }}
+                        />
+                      ))}
+                    </svg>
                   </div>
+
                   <p className="text-[#AAAAAA] text-sm font-semibold">Allergic Response Simulation</p>
+                  
                   {currentLevelIndex === 0 && (
-                    <div className="mt-4 inline-block px-6 py-2 bg-[#E10600]/20 border border-[#E10600] rounded-lg">
-                      <p className="text-[#FF3B3B] text-xs font-bold">CRITICAL: Facial Swelling Detected</p>
+                    <div className="mt-4 space-y-3 w-full max-w-xs mx-auto">
+                      <div className="inline-block px-6 py-2 bg-[#E10600]/20 border border-[#E10600] rounded-lg">
+                        <p className="text-[#FF3B3B] text-xs font-bold">CRITICAL: Facial Swelling Detected</p>
+                      </div>
+                      <div className="text-xs text-[#AAAAAA]">Symptoms progressing rapidly</div>
                     </div>
                   )}
+                  
                   {currentLevelIndex === 1 && (
-                    <div className="mt-4 space-y-2">
-                      <div className="h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
-                        <div className="h-full bg-[#FF3B3B] animate-pulse" style={{ width: '75%' }} />
+                    <div className="mt-4 space-y-3 w-full max-w-xs mx-auto">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="text-xs text-[#AAAAAA]">Airway Status</span>
+                          <span className="text-xs text-[#FF3B3B] font-bold">75% Compromised</span>
+                        </div>
+                        <div className="h-3 bg-[#1A1A1A] rounded-full overflow-hidden border border-[#E10600]">
+                          <div className="h-full bg-gradient-to-r from-[#FF3B3B] to-[#E10600] animate-pulse" style={{ width: '75%' }} />
+                        </div>
                       </div>
-                      <p className="text-[#AAAAAA] text-xs">Airway Obstruction: 75%</p>
+                    </div>
+                  )}
+
+                  {currentLevelIndex >= 2 && (
+                    <div className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-[#E10600]/10 border border-[#E10600]/30 rounded-lg">
+                      <div className="w-3 h-3 bg-[#FF3B3B] rounded-full animate-pulse" />
+                      <p className="text-[#FF3B3B] text-xs font-semibold">EMERGENCY STATE ESCALATING</p>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="inline-block">
-                    <div className="text-6xl animate-bounce">💉</div>
+                <div className="space-y-6">
+                  {/* Syncope/Hypoglycemia Visualization */}
+                  <div className="inline-flex flex-col items-center">
+                    <svg width="120" height="120" viewBox="0 0 120 120" className="mb-4">
+                      {/* Heart outline */}
+                      <path
+                        d="M 60 100 C 40 90, 25 75, 25 60 C 25 48, 33 40, 45 40 C 52 40, 58 44, 60 50 C 62 44, 68 40, 75 40 C 87 40, 95 48, 95 60 C 95 75, 80 90, 60 100 Z"
+                        fill="none"
+                        stroke="#0066CC"
+                        strokeWidth="2"
+                      />
+                      {/* Heartbeat line */}
+                      <path
+                        d="M 20 60 L 35 60 L 40 50 L 45 70 L 50 60 L 100 60"
+                        fill="none"
+                        stroke="#0066CC"
+                        strokeWidth="2"
+                        style={{
+                          animation: 'pulse-glow 1.5s ease-in-out infinite',
+                        }}
+                      />
+                    </svg>
                   </div>
+
                   <p className="text-[#AAAAAA] text-sm font-semibold">Hypoglycemic Crisis Simulation</p>
+                  
                   {currentLevelIndex === 0 && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-[#FF3B3B] font-bold text-lg">Blood Glucose: 38 mg/dL</p>
-                      <p className="text-[#AAAAAA] text-xs">CRITICALLY LOW</p>
+                    <div className="mt-4 space-y-2 w-full max-w-xs mx-auto">
+                      <div className="inline-block">
+                        <p className="text-[#FF3B3B] font-bold text-2xl">38</p>
+                        <p className="text-[#AAAAAA] text-xs">mg/dL</p>
+                      </div>
+                      <p className="text-[#E10600] text-xs font-bold">CRITICALLY LOW</p>
                     </div>
                   )}
+
                   {currentLevelIndex >= 2 && (
-                    <div className="mt-4 inline-flex items-center gap-2">
-                      <div className="w-2 h-2 bg-[#2ECC71] rounded-full animate-pulse" />
-                      <p className="text-[#2ECC71] text-xs font-semibold">Vital Signs Stabilizing</p>
+                    <div className="mt-4 space-y-2">
+                      <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#2ECC71]/10 border border-[#2ECC71]/30 rounded-lg">
+                        <div className="w-2 h-2 bg-[#2ECC71] rounded-full animate-pulse" />
+                        <p className="text-[#2ECC71] text-xs font-semibold">Glucose Responding</p>
+                      </div>
                     </div>
                   )}
                 </div>
