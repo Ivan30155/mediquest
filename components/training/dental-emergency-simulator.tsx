@@ -11,7 +11,8 @@ export default function DentalEmergencySimulator() {
   const [gameState, setGameState] = useState<GameState>('case-select')
   const [selectedCase, setSelectedCase] = useState<SimulationCase | null>(null)
   const [currentLevelIndex, setCurrentLevelIndex] = useState(0)
-  const [totalScore, setTotalScore] = useState(0)
+  const [score, setScore] = useState(0)
+  const [answeredLevels, setAnsweredLevels] = useState(0)
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null)
   const [showExplanation, setShowExplanation] = useState(false)
   const [showExitConfirm, setShowExitConfirm] = useState(false)
@@ -21,7 +22,8 @@ export default function DentalEmergencySimulator() {
     setSelectedCase(caseData)
     setGameState('playing')
     setCurrentLevelIndex(0)
-    setTotalScore(0)
+    setScore(0)
+    setAnsweredLevels(0)
   }
 
   const handleAnswerSelect = (answerId: string) => {
@@ -35,9 +37,10 @@ export default function DentalEmergencySimulator() {
     const selectedOption = currentLevel.options.find((opt) => opt.id === selectedAnswer)
 
     if (selectedOption?.isCorrect) {
-      setTotalScore((prev) => prev + currentLevel.score)
+      setScore((prev) => prev + 1)
     }
 
+    setAnsweredLevels((prev) => prev + 1)
     setShowExplanation(true)
   }
 
@@ -129,8 +132,8 @@ export default function DentalEmergencySimulator() {
   }
 
   if (gameState === 'case-complete' && selectedCase) {
-    const maxScore = selectedCase.levels.reduce((sum, level) => sum + level.score, 0)
-    const percentage = Math.round((totalScore / maxScore) * 100)
+    const totalLevels = selectedCase.levels.length
+    const percentage = totalLevels > 0 ? Math.round((score / totalLevels) * 100) : 0
     const rating =
       percentage >= 90 ? 'Excellent' : percentage >= 75 ? 'Good' : percentage >= 60 ? 'Fair' : 'Needs Improvement'
 
@@ -145,8 +148,8 @@ export default function DentalEmergencySimulator() {
             <div className="bg-[#0D0D0D] rounded-xl p-8 mb-8">
               <p className="text-[#AAAAAA] text-sm uppercase tracking-widest mb-4">Final Score</p>
               <div className="flex items-baseline justify-center gap-2">
-                <span className="text-6xl font-black text-[#E10600]">{totalScore}</span>
-                <span className="text-2xl text-[#AAAAAA]">/ {maxScore}</span>
+                <span className="text-6xl font-black text-[#E10600]">{score}</span>
+                <span className="text-2xl text-[#AAAAAA]">/ {totalLevels}</span>
               </div>
               <p className="text-lg text-[#AAAAAA] mt-4">{percentage}% Accuracy</p>
             </div>
@@ -211,14 +214,7 @@ export default function DentalEmergencySimulator() {
         <div className="max-w-4xl mx-auto mb-8">
             <div className="flex items-center justify-between mb-3">
               <span className="text-sm text-[#AAAAAA] font-semibold">Level {currentLevelIndex + 1} / {selectedCase.totalLevels}</span>
-              <div className="relative">
-                <span className="text-sm text-[#E10600] font-black">Score: {totalScore}</span>
-                {showExplanation && (
-                  <div className="absolute -top-8 -right-2 text-[#2ECC71] font-black text-lg animate-score-pop">
-                    +{selectedCase.levels[currentLevelIndex].score}
-                  </div>
-                )}
-              </div>
+              <span className="text-sm text-[#E10600] font-black">Score: {score} / {selectedCase.totalLevels}</span>
             </div>
           <div className="w-full h-2 bg-[#1A1A1A] rounded-full overflow-hidden">
             <div

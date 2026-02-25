@@ -286,12 +286,12 @@ export function EmergencyCPRFlow() {
     setCycleCount(1)
   }, [stopSpeech, clearAllIntervals])
 
-  // Restart compression cycle (step 5) after rescue breaths
+  // Restart compression cycle - goes directly to Step 5 (Compressions with metronome)
   const restartCompressionCycle = useCallback(() => {
     setShowRestartDialog(false)
     stopSpeech()
     clearAllIntervals()
-    setCurrentStepIndex(4) // Step 5: Compression step
+    setCurrentStepIndex(4) // Index 4 = Step 5 (Compressions) - NO increment logic
     setCompressionCount(0)
     setTimeRemaining(0)
     setIsPaused(false)
