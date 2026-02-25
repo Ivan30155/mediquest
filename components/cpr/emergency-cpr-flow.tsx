@@ -9,24 +9,30 @@ import { TimerRing, BPMIndicator } from "@/components/cpr/timer-ring"
 
 const BPM = 120
 const TARGET_COMPRESSIONS = 30
-const MS_PER_BEAT = 60000 / 120 // 500ms for 120 BPM
+const MS_PER_BEAT = 500 // 120 BPM = 500ms per beat
 
 export function EmergencyCPRFlow() {
   const router = useRouter()
-  const { speak, stop: stopSpeech } = useSpeechNarration()
+  const { speak, stop: stopSpeech, pause: pauseSpeech, resume: resumeSpeech } =
+    useSpeechNarration()
+
+  // ===== STATE: Stable component state =====
   const [currentStepIndex, setCurrentStepIndex] = useState(-1) // -1 = home screen
-  const [timeLeft, setTimeLeft] = useState(0)
-  const [compressionCount, setCompressionCount] = useState(0)
   const [isRunning, setIsRunning] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [timeRemaining, setTimeRemaining] = useState(0)
+  const [compressionCount, setCompressionCount] = useState(0)
   const [cycleCount, setCycleCount] = useState(1)
   const [showTransition, setShowTransition] = useState(false)
   const [pulseAnimation, setPulseAnimation] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const compressionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const metronomeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const advanceStepRef = useRef<() => void>(() => {})
+
+  // ===== REFS: Stable references =====
   const audioContextRef = useRef<AudioContext | null>(null)
   const audioInitializedRef = useRef(false)
+  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const compressionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const metronomeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const pausedTimeRef = useRef(0)
 
   const currentStep: CPRStep | null =
     currentStepIndex >= 0 && currentStepIndex < cprSteps.length
@@ -38,14 +44,14 @@ export function EmergencyCPRFlow() {
   // Initialize Web Audio API on user interaction
   const initializeAudio = useCallback(() => {
     if (audioInitializedRef.current) return
-    
+
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
       audioContextRef.current = ctx
       audioInitializedRef.current = true
-      
+
       // Resume audio context if suspended (required on mobile)
-      if (ctx.state === 'suspended') {
+      if (ctx.state === "suspended") {
         ctx.resume()
       }
     } catch (err) {
@@ -53,15 +59,15 @@ export function EmergencyCPRFlow() {
     }
   }, [])
 
-  // Play beep sound using Web Audio API
+  // Play emergency-grade beep using Web Audio API
   const playBeep = useCallback(() => {
-    if (!audioContextRef.current) return
+    if (!audioContextRef.current || isPaused) return
 
     try {
       const ctx = audioContextRef.current
-      
+
       // Ensure audio context is running
-      if (ctx.state === 'suspended') {
+      if (ctx.state === "suspended") {
         ctx.resume()
       }
 
@@ -71,152 +77,161 @@ export function EmergencyCPRFlow() {
       osc.connect(gain)
       gain.connect(ctx.destination)
 
-      // 880 Hz beep - medical alert frequency
-      osc.frequency.value = 880
-      osc.type = 'sine'
+      // Emergency-grade beep: 1100 Hz for strong, clear sound
+      osc.frequency.value = 1100
+      osc.type = "sine"
 
-      // Sharp attack, quick decay
-      gain.gain.setValueAtTime(0.3, ctx.currentTime)
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08)
+      // Sharp attack with stronger gain, quick decay (0.1s duration)
+      gain.gain.setValueAtTime(0.5, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
 
       osc.start(ctx.currentTime)
-      osc.stop(ctx.currentTime + 0.08)
+      osc.stop(ctx.currentTime + 0.1)
     } catch (err) {
       console.error("[v0] Beep playback error:", err)
     }
-  }, [])
+  }, [isPaused])
 
+  // Advance to next step - clean sequential navigation
   const advanceStep = useCallback(() => {
     stopSpeech()
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
-    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+    clearAllIntervals()
     setPulseAnimation(false)
+    setIsPaused(false)
 
     setShowTransition(true)
     setTimeout(() => {
-      setCurrentStepIndex((prev) => {
-        if (prev >= cprSteps.length - 1) {
-          // Cycle back to compressions (step index 4) for CPR cycle
+      setCurrentStepIndex((prevIndex) => {
+        const nextIndex = prevIndex + 1
+
+        // Cycle back to compressions (step 4) after rescue breaths (step 5)
+        if (nextIndex >= cprSteps.length) {
           setCycleCount((c) => c + 1)
-          return 4 // Go back to compressions
+          return 4 // Compressions step index
         }
-        return prev + 1
+
+        return nextIndex
       })
       setShowTransition(false)
     }, 400)
   }, [stopSpeech])
 
-  // Keep ref in sync so interval callbacks always get the latest version
-  useEffect(() => {
-    advanceStepRef.current = advanceStep
-  }, [advanceStep])
+  // Clear all active intervals
+  const clearAllIntervals = useCallback(() => {
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
+    if (compressionIntervalRef.current) clearInterval(compressionIntervalRef.current)
+    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+  }, [])
+
+  // Pause: Freeze all timers and audio
+  const pauseCPR = useCallback(() => {
+    if (!isRunning || isPaused) return
+
+    pauseSpeech()
+    clearAllIntervals()
+    setPulseAnimation(false)
+    pausedTimeRef.current = timeRemaining
+    setIsPaused(true)
+  }, [isRunning, isPaused, timeRemaining, pauseSpeech, clearAllIntervals])
+
+  // Resume: Continue from paused state without resetting
+  const resumeCPR = useCallback(() => {
+    if (!isRunning || !isPaused) return
+
+    resumeSpeech()
+    setIsPaused(false)
+    // Timers will be restarted by the useEffect when isPaused changes
+  }, [isRunning, isPaused, resumeSpeech])
 
   // Clean up on unmount
   useEffect(() => {
     return () => {
       stopSpeech()
-      if (timerRef.current) clearInterval(timerRef.current)
-      if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
-      if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+      clearAllIntervals()
     }
-  }, [stopSpeech])
+  }, [stopSpeech, clearAllIntervals])
 
-  // Start narration and timer when step changes
+  // Start step narration and timers
   useEffect(() => {
-    if (!currentStep || !isRunning) return
+    if (!currentStep || !isRunning || isPaused) return
 
     // Start narration
     speak(currentStep.narration)
 
+    // Handle timed steps
     if (currentStep.type === "timed") {
-      setTimeLeft(currentStep.duration)
+      setTimeRemaining(currentStep.duration)
 
-      if (timerRef.current) clearInterval(timerRef.current)
-
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current)
-            advanceStepRef.current()
+      timerIntervalRef.current = setInterval(() => {
+        setTimeRemaining((prev) => {
+          const newTime = prev - 1
+          if (newTime <= 0) {
+            advanceStep()
             return 0
           }
-          return prev - 1
+          return newTime
         })
       }, 1000)
     }
 
+    // Handle compression steps
     if (currentStep.type === "compressions") {
       setCompressionCount(0)
-      setTimeLeft(currentStep.duration)
+      setTimeRemaining(currentStep.duration)
 
-      if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
-      if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
-
-      // Start metronome: beep every 500ms (120 BPM)
+      // Start 120 BPM metronome: beep every 500ms
       metronomeIntervalRef.current = setInterval(() => {
         playBeep()
         setPulseAnimation(true)
-        setTimeout(() => setPulseAnimation(false), 150)
+        setTimeout(() => setPulseAnimation(false), 120)
       }, MS_PER_BEAT)
 
-      // Compression counter synchronized with metronome
-      compressionTimerRef.current = setInterval(() => {
+      // Sync compression counter with metronome beats
+      compressionIntervalRef.current = setInterval(() => {
         setCompressionCount((prev) => {
-          if (prev >= TARGET_COMPRESSIONS - 1) {
-            if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
-            if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
-            setPulseAnimation(false)
-            setTimeout(() => advanceStepRef.current(), 500)
+          const newCount = prev + 1
+          if (newCount >= TARGET_COMPRESSIONS) {
+            advanceStep()
             return TARGET_COMPRESSIONS
           }
-          return prev + 1
+          return newCount
         })
       }, MS_PER_BEAT)
 
-      // Countdown timer
-      if (timerRef.current) clearInterval(timerRef.current)
-      timerRef.current = setInterval(() => {
-        setTimeLeft((prev) => {
-          if (prev <= 1) {
-            if (timerRef.current) clearInterval(timerRef.current)
-            return 0
-          }
-          return prev - 1
+      // Countdown timer (independent of beat counter)
+      timerIntervalRef.current = setInterval(() => {
+        setTimeRemaining((prev) => {
+          return Math.max(0, prev - 1)
         })
       }, 1000)
     }
 
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-      if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
+      clearAllIntervals()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStepIndex, isRunning])
+  }, [currentStepIndex, isRunning, isPaused, currentStep, playBeep, advanceStep, clearAllIntervals, speak])
 
   const startEmergency = useCallback(() => {
-    // Initialize audio on user interaction (required for mobile)
     initializeAudio()
     setCurrentStepIndex(0)
     setIsRunning(true)
+    setIsPaused(false)
     setCycleCount(1)
+    setCompressionCount(0)
+    setTimeRemaining(0)
   }, [initializeAudio])
 
   const stopEmergency = useCallback(() => {
     stopSpeech()
-    if (timerRef.current) clearInterval(timerRef.current)
-    if (compressionTimerRef.current) clearInterval(compressionTimerRef.current)
-    if (metronomeIntervalRef.current) clearInterval(metronomeIntervalRef.current)
+    clearAllIntervals()
     setPulseAnimation(false)
     setIsRunning(false)
+    setIsPaused(false)
     setCurrentStepIndex(-1)
-    setTimeLeft(0)
+    setTimeRemaining(0)
     setCompressionCount(0)
-  }, [stopSpeech])
-
-  const skipStep = useCallback(() => {
-    advanceStep()
-  }, [advanceStep])
+    setCycleCount(1)
+  }, [stopSpeech, clearAllIntervals])
 
   // HOME SCREEN
   if (currentStepIndex === -1) {
@@ -304,12 +319,22 @@ export function EmergencyCPRFlow() {
           </span>
         </div>
 
+        {/* Paused Indicator */}
+        {isPaused && (
+          <div className="flex items-center gap-1.5 text-xs font-bold text-[#E10600] uppercase tracking-widest">
+            <span className="w-2 h-2 rounded-full bg-[#E10600] animate-pulse" />
+            PAUSED
+          </div>
+        )}
+
         {/* Timer */}
-        <TimerRing
-          duration={currentStep?.duration ?? 10}
-          timeLeft={timeLeft}
-          size={56}
-        />
+        {!isPaused && (
+          <TimerRing
+            duration={currentStep?.duration ?? 10}
+            timeLeft={timeRemaining}
+            size={56}
+          />
+        )}
       </header>
 
       {/* Step progress bar */}
@@ -400,10 +425,45 @@ export function EmergencyCPRFlow() {
           </svg>
         </button>
 
+        {/* Pause/Resume button */}
+        <button
+          onClick={isPaused ? resumeCPR : pauseCPR}
+          className={`flex-none w-14 h-14 rounded-xl border flex items-center justify-center transition-all active:scale-95 ${
+            isPaused
+              ? "bg-[#1A5C1A] border-[#2ECC71] text-[#2ECC71] hover:bg-[#1F7A1F]"
+              : "bg-[#1A1A1A] border-[#333] text-[#AAAAAA] hover:text-[#F5F5F5] hover:border-[#E10600]"
+          }`}
+          aria-label={isPaused ? "Resume CPR" : "Pause CPR"}
+        >
+          {isPaused ? (
+            // Resume icon
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <path d="M5 3v18l15-9z" />
+            </svg>
+          ) : (
+            // Pause icon
+            <svg
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+            >
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+          )}
+        </button>
+
         {/* Next / Skip button */}
         <button
-          onClick={skipStep}
-          className="flex-1 h-14 bg-[#E10600] hover:bg-[#FF3B3B] text-[#F5F5F5] font-bold text-lg rounded-xl transition-all duration-200 active:scale-95"
+          onClick={advanceStep}
+          className="flex-1 h-14 bg-[#E10600] hover:bg-[#FF3B3B] text-[#F5F5F5] font-bold text-lg rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50"
+          disabled={isPaused}
         >
           {isLastStep ? "RESTART CYCLE" : "NEXT STEP"}
         </button>

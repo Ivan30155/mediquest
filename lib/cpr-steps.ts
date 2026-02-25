@@ -56,9 +56,9 @@ export const cprSteps: CPRStep[] = [
     id: 5,
     title: "Perform Chest Compressions",
     instruction:
-      "Place the heel of your hand on the center of the chest. Push hard and fast. 30 compressions at 110 BPM.",
+      "Place the heel of your hand on the center of the chest. Push hard and fast. 30 compressions at 120 BPM.",
     narration:
-      "Step 5. Begin chest compressions now. Place the heel of your hand on the center of the chest. Interlock your fingers. Push hard and fast. 30 compressions. Follow the beat.",
+      "Step 5. Begin chest compressions now. Place the heel of your hand on the center of the chest. Interlock your fingers. Push hard and fast. 30 compressions at 120 beats per minute. Follow the beat.",
     image: "/images/step-compressions.jpg",
     duration: 18,
     type: "compressions",

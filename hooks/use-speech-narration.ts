@@ -13,6 +13,22 @@ export function useSpeechNarration() {
     }
   }, [])
 
+  const pause = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
+        window.speechSynthesis.pause()
+      }
+    }
+  }, [])
+
+  const resume = useCallback(() => {
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume()
+      }
+    }
+  }, [])
+
   const speak = useCallback(
     (text: string, onEnd?: () => void) => {
       if (typeof window === "undefined" || !window.speechSynthesis) return
@@ -68,5 +84,5 @@ export function useSpeechNarration() {
     }
   }, [stop])
 
-  return { speak, stop, isSpeaking: isSpeakingRef }
+  return { speak, stop, pause, resume, isSpeaking: isSpeakingRef }
 }
