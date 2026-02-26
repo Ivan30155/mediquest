@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { motion } from 'framer-motion'
 import {
   SILENT_ALLERGEN,
   MORNING_COLLAPSE,
@@ -63,6 +64,7 @@ export default function DentalEmergencySimulator() {
       setCurrentLevelIndex((prev) => prev + 1)
       setSelectedAnswer(null)
       setShowExplanation(false)
+      window.scrollTo({ top: 0, behavior: 'smooth' })
     } else {
       setGameState('case-complete')
     }
@@ -77,9 +79,10 @@ export default function DentalEmergencySimulator() {
     setShowExplanation(false)
   }
 
+  // ================= CASE SELECT =================
   if (gameState === 'case-select') {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black text-white p-6">
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-950 to-black text-white p-6">
         <div className="max-w-4xl w-full">
           <h1 className="text-4xl font-bold text-center mb-10">
             Dental Emergency Simulator
@@ -88,7 +91,7 @@ export default function DentalEmergencySimulator() {
           <div className="grid md:grid-cols-2 gap-6">
             <button
               onClick={() => handleCaseSelect('silent-allergen')}
-              className="bg-red-900 p-6 rounded-xl hover:bg-red-700 transition"
+              className="bg-white/5 backdrop-blur-lg border border-white/10 p-6 rounded-2xl hover:scale-105 transition"
             >
               <h2 className="text-2xl font-bold mb-2">
                 The Silent Allergen
@@ -98,7 +101,7 @@ export default function DentalEmergencySimulator() {
 
             <button
               onClick={() => handleCaseSelect('morning-collapse')}
-              className="bg-blue-900 p-6 rounded-xl hover:bg-blue-700 transition"
+              className="bg-white/5 backdrop-blur-lg border border-white/10 p-6 rounded-2xl hover:scale-105 transition"
             >
               <h2 className="text-2xl font-bold mb-2">
                 The Morning Collapse
@@ -106,17 +109,12 @@ export default function DentalEmergencySimulator() {
               <p>5 Level Diagnostic Precision Simulation</p>
             </button>
           </div>
-
-          <div className="text-center mt-10">
-            <button onClick={() => router.push('/')} className="underline">
-              Back to Home
-            </button>
-          </div>
         </div>
       </main>
     )
   }
 
+  // ================= CASE COMPLETE =================
   if (gameState === 'case-complete' && selectedCase) {
     const maxScore = selectedCase.levels.length
     const percentage =
@@ -125,11 +123,15 @@ export default function DentalEmergencySimulator() {
         : 0
 
     return (
-      <main className="min-h-screen flex items-center justify-center bg-black text-white p-6">
-        <div className="bg-gray-900 p-10 rounded-2xl max-w-xl w-full text-center">
+      <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-950 to-black text-white p-6">
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-white/5 backdrop-blur-lg border border-white/10 p-10 rounded-3xl max-w-xl w-full text-center"
+        >
           <h2 className="text-3xl font-bold mb-6">Case Complete</h2>
 
-          <p className="text-5xl font-bold text-red-500 mb-4">
+          <p className="text-5xl font-bold text-red-400 mb-4 drop-shadow-[0_0_10px_rgba(255,0,0,0.6)]">
             {score} / {maxScore}
           </p>
 
@@ -137,45 +139,60 @@ export default function DentalEmergencySimulator() {
             {percentage}% Accuracy
           </p>
 
-          <div className="space-y-4">
-            <button
-              onClick={handleRestartCase}
-              className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-lg font-bold"
-            >
-              Try Another Case
-            </button>
-
-            <button
-              onClick={() => router.push('/')}
-              className="w-full bg-gray-700 hover:bg-gray-600 py-3 rounded-lg"
-            >
-              Return Home
-            </button>
-          </div>
-        </div>
+          <button
+            onClick={handleRestartCase}
+            className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl font-bold transition"
+          >
+            Try Another Case
+          </button>
+        </motion.div>
       </main>
     )
   }
 
+  // ================= PLAYING =================
   if (gameState === 'playing' && selectedCase) {
     const currentLevel = selectedCase.levels[currentLevelIndex]
-    const isAnswered = showExplanation   // ✅ FIXED HERE
 
     return (
-      <main className="min-h-screen bg-black text-white p-6">
-        <div className="max-w-3xl mx-auto">
-
-          <div className="flex justify-between mb-6">
+      <main className="min-h-screen bg-gradient-to-br from-black via-gray-950 to-black text-white p-6">
+        <motion.div
+          key={currentLevelIndex}
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="max-w-3xl mx-auto"
+        >
+          {/* Header */}
+          <div className="flex justify-between mb-4">
             <p>
               Level {currentLevelIndex + 1} /{' '}
               {selectedCase.levels.length}
             </p>
-            <p>
+            <p className="font-bold text-red-400 drop-shadow-[0_0_6px_rgba(255,0,0,0.6)]">
               Score: {score}
             </p>
           </div>
 
-          <div className="bg-gray-900 p-6 rounded-xl mb-6">
+          {/* Progress Bar */}
+          <div className="w-full bg-gray-800 rounded-full h-3 mb-6 overflow-hidden">
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{
+                width: `${
+                  ((currentLevelIndex +
+                    (showExplanation ? 1 : 0)) /
+                    selectedCase.levels.length) *
+                  100
+                }%`,
+              }}
+              transition={{ duration: 0.4 }}
+              className="h-3 bg-gradient-to-r from-red-500 to-pink-500"
+            />
+          </div>
+
+          {/* Question Card */}
+          <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-6 rounded-3xl mb-6">
             <p className="text-sm text-gray-400 mb-2">
               {currentLevel.medicalContext}
             </p>
@@ -184,7 +201,7 @@ export default function DentalEmergencySimulator() {
               {currentLevel.scenario}
             </p>
 
-            <h3 className="text-xl font-bold text-red-500 mb-4">
+            <h3 className="text-xl font-bold text-red-400 mb-4">
               {currentLevel.question}
             </h3>
 
@@ -193,8 +210,8 @@ export default function DentalEmergencySimulator() {
                 <button
                   key={option.id}
                   onClick={() => handleAnswerSelect(option.id)}
-                  disabled={isAnswered}
-                  className={`w-full text-left p-3 rounded-lg border ${
+                  disabled={showExplanation}
+                  className={`w-full text-left p-4 rounded-xl border transition-all duration-200 transform hover:scale-[1.02] ${
                     showExplanation
                       ? option.isCorrect
                         ? 'border-green-500 bg-green-900'
@@ -213,7 +230,7 @@ export default function DentalEmergencySimulator() {
           </div>
 
           {showExplanation && (
-            <div className="bg-gray-900 p-4 rounded-lg mb-4">
+            <div className="bg-white/5 backdrop-blur-lg border border-white/10 p-4 rounded-2xl mb-4">
               <p className="mb-2 text-red-400 font-bold">
                 Explanation
               </p>
@@ -225,14 +242,14 @@ export default function DentalEmergencySimulator() {
             <button
               onClick={handleSubmitAnswer}
               disabled={!selectedAnswer}
-              className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-lg font-bold disabled:opacity-50"
+              className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl font-bold transition disabled:opacity-50"
             >
               Submit Answer
             </button>
           ) : (
             <button
               onClick={handleNextLevel}
-              className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-lg font-bold"
+              className="w-full bg-red-600 hover:bg-red-700 py-3 rounded-xl font-bold transition"
             >
               {currentLevelIndex ===
               selectedCase.levels.length - 1
@@ -240,7 +257,7 @@ export default function DentalEmergencySimulator() {
                 : 'Next Level'}
             </button>
           )}
-        </div>
+        </motion.div>
       </main>
     )
   }

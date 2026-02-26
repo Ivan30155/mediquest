@@ -77,9 +77,9 @@ export default function HomePage() {
       <div className="relative z-10 text-center space-y-12 w-full max-w-2xl px-6">
         {/* Header */}
         <div className="space-y-6 animate-fade-in">
-          <h1 className="text-7xl md:text-8xl font-black tracking-tight text-[#F5F5F5]">
-            MediQuest
-          </h1>
+          <h1 className="w-full text-4xl sm:text-6xl md:text-8xl font-black tracking-tight text-[#F5F5F5] leading-tight break-words">
+           MediQuest
+             </h1>
           <p className="text-2xl md:text-3xl font-light text-[#AAAAAA] tracking-wide">
             Emergency Response Guidance & Medical Training
           </p>
